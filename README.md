@@ -10,7 +10,9 @@ The full requirements are in the [PRD](docs/prd.md).
 ## Requirements
 
 - Ruby 3.4.5. The version is pinned in `.ruby-version`, which mise, rbenv and similar tools read.
-- PostgreSQL running locally and reachable by your user.
+- PostgreSQL running locally and reachable by your user. `bin/setup` connects over the local socket
+  as your OS user, which needs a PostgreSQL role with CREATEDB (`sudo -u postgres createuser --createdb $USER`),
+  or set `DATABASE_URL` / `PGHOST` / `PGUSER`.
 - Chrome or Chromium for system tests. Set `CHROME_BIN` to the browser binary if it is not
   found on your `PATH`.
 

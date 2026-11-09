@@ -4,8 +4,10 @@
 # and recreated between test runs. Don't rely on the data there!
 
 Rails.application.configure do
-  # Prosopite: raise on N+1 queries. The middleware covers requests served in
-  # Puma's thread (system tests); test_helper covers the test thread.
+  # Prosopite: raise on N+1 queries. test_helper's setup scan covers model and job
+  # tests. In integration tests the middleware's finish ends the per-test scan after
+  # the request, so N+1s surface from the request call. The middleware is what
+  # covers system tests, which run in Puma's thread.
   require "prosopite/middleware/rack"
   config.middleware.use Prosopite::Middleware::Rack
   config.after_initialize { Prosopite.raise = true }
