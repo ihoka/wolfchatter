@@ -85,7 +85,9 @@ read receipts/typing indicators, CI pipeline (tests run locally), actual deploym
   JS is unavoidable (the Leaflet map controller, scroll-to-bottom, name form). Importmap, no Node build.
   Tailwind via `tailwindcss-rails`.
 - **Map:** Leaflet with standard OpenStreetMap tiles (no API key). Leaflet loaded via importmap.
-- **Real time:** Turbo Streams over Action Cable, backed by **Solid Cable** on Postgres (no Redis).
+- **Real time:** Turbo Streams over Action Cable, backed by **Solid Cable** on Postgres (no Redis), in
+  development as well as production (broadcast jobs run in Solid Queue's processes, so an in-process
+  cable adapter would not reach browsers).
   Streams: one per chatroom (messages, title), one global (new pins).
 - **Background jobs:** **Solid Queue** on Postgres (no Redis) for reverse geocoding. Solid Queue is the
   Active Job adapter in development as well as production, so `limits_concurrency` (Nominatim ≤ 1 req/s)

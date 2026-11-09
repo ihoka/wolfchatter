@@ -100,7 +100,8 @@ Content (keep under ~80 lines; terse, imperative):
   - External HTTP only inside jobs, always with timeouts; stubbed in tests (no live network in tests).
 - **Workflow rules:**
   - TDD: failing test first, watch it fail, then implement.
-  - Every N+1 is a bug (Prosopite raises in test from phase 1).
+  - Every N+1 is a bug: fix the query; never disable, allowlist or rescue Prosopite (raises in test from phase 1).
+  - Precedence: spec > PRD > phase plan > these conventions; on conflict, stop and ask the lead developer.
   - Verify before claiming done: run the commands above and quote the result.
   - Small commits, Conventional Commits prefixes (`feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`).
   - One branch + PR per phase; plans in `docs/plans/` are the source of truth for task scope.
