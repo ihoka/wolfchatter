@@ -1,3 +1,8 @@
+require "net/http"
+require "openssl"
+require "json"
+require "zlib"
+
 # Turns coordinates into a short place name using Nominatim.
 # Returns nil on any failure so callers can leave the room unnamed.
 class ReverseGeocoder
