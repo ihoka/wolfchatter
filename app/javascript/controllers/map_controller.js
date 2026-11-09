@@ -34,6 +34,23 @@ export default class extends Controller {
       const map = L.map(this.mapTarget, { doubleClickZoom: false })
         .setView(this.centerValue, this.zoomValue)
       L.tileLayer(this.tileUrlValue, { attribution: this.attributionValue, maxZoom: 19 }).addTo(map)
+      // Registered once, so it must not capture this controller instance: after
+      // Turbo moves the permanent element a new instance (with new targets) takes
+      // over. Resolve the form from the permanent DOM at click time instead; those
+      // nodes are the same across moves.
+      const container = this.element
+      let lastClickAt = 0
+      map.on("click", (event) => {
+        // A double-click fires two click events; create only one room.
+        if (event.originalEvent.timeStamp - lastClickAt < 300) return
+        lastClickAt = event.originalEvent.timeStamp
+        const form = container.querySelector("#new_chatroom_form")
+        if (!form) return
+        const { lat, lng } = event.latlng.wrap()
+        form.querySelector("[name='chatroom[latitude]']").value = lat.toFixed(6)
+        form.querySelector("[name='chatroom[longitude]']").value = lng.toFixed(6)
+        form.requestSubmit()
+      })
       map.on("zoomend", () => { this.element.dataset.mapCurrentZoom = map.getZoom() })
       this.element.dataset.mapCurrentZoom = map.getZoom()
       this.mapTarget.leafletMap = map
