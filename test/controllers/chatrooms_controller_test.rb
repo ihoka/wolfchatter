@@ -29,6 +29,7 @@ class ChatroomsControllerTest < ActionDispatch::IntegrationTest
       post chatrooms_path, params: { chatroom: { latitude: 10, longitude: 200 } }
     end
     assert_response :unprocessable_content
+    assert_select "turbo-frame#chatroom_panel"
   end
 
   test "show renders the full page with the room open" do
@@ -40,6 +41,7 @@ class ChatroomsControllerTest < ActionDispatch::IntegrationTest
 
   test "show as a frame request renders only the panel" do
     get chatroom_path(chatrooms(:rome)), headers: { "Turbo-Frame" => "chatroom_panel" }
+    assert_response :success
     assert_select "turbo-frame#chatroom_panel h2", "Rome, Italy"
     assert_select "#markers", count: 0
   end
