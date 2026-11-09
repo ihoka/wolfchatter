@@ -1,13 +1,14 @@
 # Wolfchatter
 
 Wolfchatter is a real-time chat app on a map. Click anywhere to drop a pin; each pin is a chatroom
-anyone can join, and new messages and pins appear live for everyone watching.
+anyone can join. New messages, new pins and place-name titles appear live for everyone watching,
+with no reload. It is a server-rendered Rails 8.1 app on Hotwire, Leaflet with OpenStreetMap,
+PostgreSQL, Solid Queue and Solid Cable: no Redis, no Node build, no SPA. The full requirements are
+in the [PRD](docs/prd.md).
 
-Built on Rails 8.1, Hotwire, PostgreSQL, Solid Queue and Solid Cable (no Redis, no Node build).
-Rooms, messages, live updates and place names work.
-The full requirements are in the [PRD](docs/prd.md).
+![Wolfchatter: a map of Europe with five room pins, and the Cluj-Napoca room open in the chat panel](docs/screenshot.png)
 
-## Using Wolfchatter
+## Features
 
 - **Open a room:** click anywhere on the map. A pin drops there and the panel on the right
   switches to the new room.
@@ -22,6 +23,79 @@ The full requirements are in the [PRD](docs/prd.md).
 - **Place names:** a new room starts as "Chatroom 12". A moment later it is renamed after the place
   you clicked, for example "Cluj-Napoca, Romania", for everyone watching. A room in the open sea
   keeps its number.
+
+## Quick start
+
+You need Ruby 3.4.5, a local PostgreSQL your OS user can create databases in, and Chrome or
+Chromium for system tests. See [Requirements](#requirements) for the details.
+
+```sh
+git clone https://github.com/ihoka/wolfchatter.git
+cd wolfchatter
+bin/setup --skip-server   # installs gems, creates the four databases
+bin/rails test:all        # unit, integration and headless-Chrome system tests
+bin/dev                   # http://localhost:3000
+```
+
+Use `bin/dev`, not a bare `bin/rails server`: only `bin/dev` runs the background jobs that set
+place names (see [Run](#run)).
+
+## Architecture at a glance
+
+```mermaid
+flowchart TD
+  subgraph Browser
+    Stim["Stimulus: map + marker controllers (Leaflet)"]
+    Frame["Turbo frame: chat panel"]
+    Subs["turbo_stream_from: 'chatrooms' + open room"]
+  end
+  Ctrl["Rails controllers"]
+  Models["Models: broadcast in after_*_commit"]
+  PG[("PostgreSQL: app data, Solid Queue, Solid Cable")]
+  Queue["Solid Queue: 1 job at a time, ~1 req/s"]
+  Job["GeocodeChatroomJob"]
+  Nom["Nominatim reverse API"]
+  Cable["Solid Cable"]
+
+  Stim -- "map click: POST /chatrooms<br/>pin click: GET /chatrooms/:id" --> Ctrl
+  Ctrl -- "panel HTML" --> Frame
+  Ctrl --> Models --> PG
+  Models -- "enqueue on create" --> Queue --> Job
+  Job -- "HTTPS with timeouts" --> Nom
+  Job -- "update place_name" --> Models
+  Models -- "broadcast pin, message, title" --> Cable
+  Cable -- "Turbo Streams over Action Cable" --> Subs
+  Subs -- "messages, title" --> Frame
+  Subs -- "new and renamed pins" --> Stim
+```
+
+- **Two tables.** `chatrooms` (latitude, longitude, nullable `place_name`) and `messages`
+  (`chatroom_id`, `author_name`, `body`), indexed on `(chatroom_id, created_at)`. A room's title is
+  `place_name.presence || "Chatroom #{id}"`. Columns and limits are in the
+  [PRD data model](docs/prd.md#data-model).
+- **Global `chatrooms` stream.** Every map page subscribes. Creating a room appends a hidden marker
+  element (data attributes only) to `#markers`; the `marker` Stimulus controller hands it to the
+  `map` controller, which adds the Leaflet pin and dedupes by room id.
+- **Per-room stream.** The open panel subscribes with `turbo_stream_from @chatroom`. A new message
+  appends the same `messages/message` partial the page renders.
+- **Place names.** Creating a room enqueues `GeocodeChatroomJob`. When it stores a `place_name`,
+  the model replaces the panel title on the room stream and the marker on the global stream, so
+  the pin's tooltip updates too.
+- **Server is the source of truth.** The browser holds only Leaflet state and the selected room
+  (in the URL). The display name lives in a signed, HttpOnly cookie.
+
+## Key decisions and trade-offs
+
+| Decision | Why | Trade-off |
+|---|---|---|
+| Hotwire over an SPA | Turbo frames give navigation and a URL per room; Turbo Streams give live updates. Three small Stimulus controllers cover the map, markers and scrolling. No build step. | Leaflet still needs careful client code: the map is `data-turbo-permanent` and must survive Turbo visits. |
+| Pins as marker elements, not JSON | Initial pins and live pins use one partial and one code path. Broadcasts are plain Turbo Stream appends, and there is no client-side store to keep in sync. | Every full page load renders every pin. Fine to a few thousand rooms ([Q1](docs/review/report.md)). |
+| Synchronous broadcasts | `broadcast_*_to` in `after_create_commit` is a cheap Solid Cable insert. It needs no job process, and system tests see it immediately. | Broadcast rendering happens inside the request. solid_cable writes in a background thread, so a cable outage is logged rather than failing the post ([T1, refuted](docs/review/report.md#checked-and-clean)). |
+| Solid Queue and Solid Cable on Postgres, no Redis | One database server to run, back up and pay for. Solid Queue runs inside Puma. | Postgres carries the job and cable load. Fine at the expected scale ([infrastructure](docs/infrastructure.md)). |
+| Signed-cookie display name, honor system | No accounts were in scope. Name once, reused everywhere; the signature stops tampering with someone else's cookie. | Anyone can pick any name. Names are not unique or authenticated. |
+| Per-session CSP nonce | Strict CSP with no `'unsafe-inline'`. The browser keeps the CSP header of the first full load while Turbo swaps in each page's nonce meta, so a per-request nonce would break after the first visit. | The nonce is stable for a session, which is weaker than a fresh one per request. |
+| Throttled geocoding job | Nominatim's policy is at most 1 request per second with an identifying User-Agent. `limits_concurrency to: 1` plus a 1-second sleep enforces that globally, and HTTP stays out of the request. | Under a burst of new rooms, place names queue up and arrive late. |
+| Rate limits | Rails `rate_limit`: 10 rooms and 30 messages per minute per IP, so one script can't litter the map or flood a room. | Per-IP only: a distributed flood is slowed, not stopped. In-memory store in development, Solid Cache in production. |
 
 ## Improvements over the mockups
 
@@ -43,13 +117,52 @@ one request per second, as Nominatim's usage policy requires.
 - **History:** the panel shows the 100 most recent messages in a room.
 - **Timestamps are shown in UTC.**
 - **Every map click creates a room,** including stray ones. This matches the mockups.
+- **No edit, delete or moderation.** Rate limits slow abuse but can't undo it.
+- **All pins load on every page.** Comfortable up to a few thousand rooms; beyond that it needs
+  viewport-bounded loading or clustering.
 - **Missed pins after a dropped connection:** pins created while your live connection was down
   show up only after a full reload, because the map keeps its pins across in-app navigation.
+- **The creator can miss their room's live title.** If the place name arrives before the new
+  panel's stream subscribes, the creator keeps "Chatroom 12" until they reopen the room. The pin
+  still updates. The window is small.
 - **Very fast Back:** pressing Back within milliseconds of clicking a pin can leave the panel
   showing the room you just opened. The next navigation corrects it. This comes from how Turbo
   finishes a frame visit.
+- **Not deployed.** There is a plan and budget for fly.io in [infrastructure](docs/infrastructure.md),
+  but no CI and no live environment. Tests run locally.
 
-## Requirements
+The deferred review findings and what we'd do next are in the [triage notes](docs/review/notes.md).
+
+## How this was built with AI
+
+Wolfchatter was built with Claude Code, and the process is committed alongside the code.
+
+- **Docs before code.** A brainstorm produced the [design spec](docs/superpowers/specs/2026-11-09-wolfchatter-design.md),
+  which was distilled into the [PRD](docs/prd.md) and an [overview plan](docs/plans/00-overview.md)
+  with eight phases. Each phase got its own detailed plan in [`docs/plans/`](docs/plans/), written
+  just before it started. The lead developer approved the plans for phases 0–2 one by one. Phases 3–7
+  ran under a standing go-ahead, and the lead developer reviews the end result.
+- **Subagent-driven execution.** Each task in a plan went to a fresh implementer subagent, with TDD
+  and small commits. A fresh reviewer checked each task, and a whole-branch review ran before each
+  phase PR. One branch and one PR per phase, merged without squashing.
+- **Project rules in [`CLAUDE.md`](CLAUDE.md):** stack limits (no Redis, no Node build, no SPA),
+  Hotwire first, broadcasts declared in models, no live network in tests, every N+1 is a bug,
+  verify before claiming done, and a precedence order of spec > PRD > plan > conventions.
+- **Three-layer `/self-review`** ([skill](.claude/skills/self-review/SKILL.md), [agents](.claude/agents/)):
+  `bin/review` runs the deterministic tools; three focused reviewers look only at queries, test
+  gaps and security; then an adversarial verifier tries to refute each finding before it reaches
+  the [report](docs/review/report.md). The lead developer triages every finding in the
+  [notes](docs/review/notes.md).
+
+What the process caught: the phase 2 final review found a CSP nonce that would break after the
+first Turbo navigation. Running the geocoder for real, outside the test suite, found a missing
+`require "net/http"` that WebMock had been hiding. The verifier refuted a "broadcast failure
+returns 500" claim repeated across three earlier reviews, and the final review in turn caught one
+of the verifier's false positives (the 406 half of T9). No single layer catches everything.
+
+## Development
+
+### Requirements
 
 - Ruby 3.4.5. The version is pinned in `.ruby-version`, which mise, rbenv and similar tools read.
 - PostgreSQL running locally and reachable by your user. `bin/setup` connects over the local socket
@@ -58,7 +171,7 @@ one request per second, as Nominatim's usage policy requires.
 - Chrome or Chromium for system tests. Set `CHROME_BIN` to the browser binary if it is not
   found on your `PATH`.
 
-## Setup
+### Setup
 
 ```sh
 bin/setup
@@ -69,7 +182,7 @@ databases: development primary (`wolfchatter_development`), development queue an
 (`wolfchatter_development_queue`, `wolfchatter_development_cable`), and `wolfchatter_test`.
 Use `bin/setup --skip-server` to set up without starting the app.
 
-## Run
+### Run
 
 ```sh
 bin/dev
@@ -81,7 +194,7 @@ Then open http://localhost:3000. `bin/dev` starts Puma with Solid Queue running 
 Note: a bare `bin/rails server` enqueues background jobs but does not run them, because Solid
 Queue only runs inside Puma when `SOLID_QUEUE_IN_PUMA=1` is set. Use `bin/dev`.
 
-## Test
+### Test
 
 ```sh
 bin/rails test           # unit and integration tests
@@ -91,9 +204,10 @@ bin/rails test:all       # everything
 
 Coverage is off by default. `COVERAGE=1 bin/rails test` writes a report to `coverage/` for unit
 and integration tests, and `COVERAGE=1 bin/rails test:all` includes system tests. Prosopite runs
-in the test environment and fails tests on N+1 queries.
+in the test environment and fails tests on N+1 queries. Tests never touch the network: WebMock
+blocks it and Nominatim is stubbed.
 
-## Quality
+### Quality
 
 ```sh
 bin/rubocop
@@ -101,10 +215,23 @@ bin/brakeman
 bin/bundler-audit
 ```
 
-## Project docs
+### Review
 
-- [Product requirements (PRD)](docs/prd.md)
-- [Design spec](docs/superpowers/specs/2026-11-09-wolfchatter-design.md)
-- [Delivery plans](docs/plans/00-overview.md)
+```sh
+bin/review                # Brakeman, bundler-audit, importmap audit, RuboCop, all tests with coverage
+bin/review --skip-system  # the same, without system tests
+```
+
+It prints a summary table, writes raw output to `tmp/review/`, and exits non-zero if any tool
+fails. In Claude Code, `/self-review` runs it as the first layer of the AI review.
+
+## Docs
+
+- [Product requirements (PRD)](docs/prd.md): requirements, data model, real-time design, risks
+- [Design spec](docs/superpowers/specs/2026-11-09-wolfchatter-design.md): the brainstorm output the PRD came from
+- [Delivery plans](docs/plans/00-overview.md): the overview and [one plan per phase](docs/plans/)
 - [Infrastructure and cost estimate](docs/infrastructure.md): fly.io deployment plan and monthly costs
+- [Self-review report](docs/review/report.md): verified findings from the three-layer review
+- [Review triage notes](docs/review/notes.md): what was fixed, what wasn't, and why
 - [CLAUDE.md](CLAUDE.md): conventions and workflow for contributors and coding agents
+- [`.claude/`](.claude/): the review agents and the `/self-review` skill
