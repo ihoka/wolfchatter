@@ -1,8 +1,13 @@
 <% id_suffix = local_assigns.fetch(:id_suffix, :marker) %>
+<% role = local_assigns.fetch(:role, "live") %>
+<% cell = local_assigns[:cell] %>
 <div id="<%= dom_id(chatroom, id_suffix) %>"
      data-controller="marker"
      data-marker-id-value="<%= chatroom.id %>"
      data-marker-lat-value="<%= chatroom.latitude %>"
      data-marker-lng-value="<%= chatroom.longitude %>"
      data-marker-title-value="<%= chatroom.title %>"
-     data-marker-url-value="<%= chatroom_path(chatroom) %>"></div>
+     data-marker-url-value="<%= chatroom_path(chatroom) %>"
+     data-marker-role-value="<%= role %>"<% if cell %>
+     data-cell-x="<%= cell[0] %>"
+     data-cell-y="<%= cell[1] %>"<% end %>></div>

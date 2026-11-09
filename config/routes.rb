@@ -9,6 +9,8 @@ Rails.application.routes.draw do
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
+  get "chatrooms/markers", to: "markers#index", as: :chatroom_markers
+
   resources :chatrooms, only: %i[index show create] do
     resources :messages, only: :create
   end

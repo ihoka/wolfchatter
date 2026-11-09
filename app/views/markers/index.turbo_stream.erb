@@ -1,0 +1,20 @@
+<%= turbo_stream.update "markers" do %>
+  <div id="marker_set" data-controller="marker-set"
+       data-marker-set-mode-value="<%= @markers.mode %>"
+       data-marker-set-cell-size-value="<%= @markers.cell_size %>">
+    <% if @markers.mode == :pins %>
+      <% @markers.pins.each do |chatroom| %>
+        <%= render "chatrooms/marker", chatroom: chatroom, role: "set" %>
+      <% end %>
+    <% else %>
+      <% @markers.clusters.each do |cluster| %>
+        <% if cluster.chatroom %>
+          <%= render "chatrooms/marker", chatroom: cluster.chatroom, role: "set",
+                                         cell: [ cluster.cell_x, cluster.cell_y ] %>
+        <% else %>
+          <%= render "chatrooms/cluster", cluster: cluster %>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>
