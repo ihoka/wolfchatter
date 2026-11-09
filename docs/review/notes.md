@@ -17,6 +17,7 @@ Source: [`report.md`](report.md) (commit `87ce01d`, 12 confirmed findings). Re-r
 | **T7** low — FR-6 panel rendering is untested | Fix (tests) | The tests cover the timestamp format and the 100-message window. Scroll-to-newest is client-side behaviour, and the system tests exercise it only indirectly. | `0c7110d` |
 | **T8** low — cookie flags aren't asserted | Fix (tests) | A test now checks that the cookie is `HttpOnly` and `SameSite=Lax`, so nobody can drop those flags silently. | `0c7110d` |
 | **T9** low — 406/400 responses are untested | Partly fixed | A 400 for a missing `chatroom` key and a 422 for a non-numeric latitude are now tested. The 406 claim was a false positive that the verifier confirmed: Rails already returns 406 via `rescue_responses`. | `0c7110d`, `8d8fe1f` |
+| **Q1** low — every page renders every pin | Fix | The PRD had accepted this, but it grows with every room, so we changed the design instead of waiting for it to hurt. The map page now renders no pins. The browser asks for the visible area, and the server returns pins when 300 or fewer rooms are in view and count clusters on a grid otherwise. We chose server-side clustering because a client plugin would still ship every pin. Measured with 10,000 rooms in the development database (median of 5 runs after a warm-up, through `ActionDispatch::Integration::Session`, so no network): `GET /` is 5,492 bytes in 1.5 ms (was 3.7 MB and about 220 ms); a world-view markers request (zoom 3) is 1,867 bytes in 7.6 ms; a Europe-wide request at zoom 5 is 26,125 bytes in 10.8 ms to 11.5 ms; a city-box request at zoom 12 is 653 bytes in 1.7 ms. The Q1 figures came from a separate measurement, so treat the comparison as an order of magnitude, not a precise ratio. Design: [viewport pins](../superpowers/specs/2026-11-09-viewport-pins-design.md). | `91f7fb0`, `aab9e91`, `d4bb4b8`, `59037e6`, `7ae7a82` |
 
 ## Not fixed
 
@@ -24,11 +25,9 @@ Source: [`report.md`](report.md) (commit `87ce01d`, 12 confirmed findings). Re-r
 |---|---|---|
 | **T2** low — if enqueuing the place-name job fails when a room is created, the request returns 500 and the pin isn't broadcast | Don't fix | Solid Queue's database is on the same Postgres server as the app's data. If enqueuing fails, the insert that just succeeded would usually fail too, and a 500 is an honest response to that. Rescuing the error would hide an infrastructure failure. |
 | **T5** low — the room's creator can miss the live title update, because their room stream subscribes after the panel loads | Defer | The job is picked up 0–1 s after enqueue (1 s polling) plus a Nominatim round-trip, so the creator's stream usually subscribes first. The pin title still updates through the global stream. Refreshing the panel title when the stream connects would close it. That's worth doing, but it isn't needed for launch. |
-| **Q1** low — every page renders every pin | Defer | The PRD accepted this risk. The report measured about 220 ms server time and 3.7 MB of HTML (173 KB gzipped) at 10k rooms, from one 25 ms query. That is fine at the scale we expect. The proper fix, viewport-bounded loading or clustering, is a design change. Rate limiting (S1) also slows down growth that comes from abuse. |
 
 ## What I'd do with more time
 
-- Load pins for the visible area only, with clustering, so the map scales past a few thousand rooms (Q1).
 - Refresh the panel title when its stream connects (T5).
 - Keep a moderation path: let an admin hide a room or message. Rate limiting slows abuse but can't undo it.
 - Add a real Solid Queue integration test for the Nominatim throttle, so we aren't relying on reading the gem's source.
