@@ -41,7 +41,9 @@ The change fails, even if it works, if:
   pins as now, at every zoom;
 - a deep link (`/chatrooms/:id`) opens with that room's pin not on screen;
 - panning makes pins flicker or vanish while the next area loads;
-- it reintroduces an N+1 or a query that scales with total rooms on any request.
+- it reintroduces an N+1, or a page or reply whose size scales with total rooms.
+  (Amended after phase 8: the zoomed-out cluster query's *cost* does scale with the rooms in
+  view. The lead developer accepted this as a risk; see the PRD risks.)
 
 ## Constraints
 
@@ -49,7 +51,8 @@ The change fails, even if it works, if:
   attributes, delivered as a Turbo Stream. No JSON endpoint, no client-side store beyond Leaflet's
   own layers.
 - Plain PostgreSQL. Coordinates are `decimal(10,6)` columns.
-- Prosopite stays on. Every new query is bounded and indexed.
+- Prosopite stays on. Every new query's output is bounded by `PIN_LIMIT`. The pins query is also
+  indexed; the cluster query scans the rooms in view (accepted risk, amended after phase 8).
 - The PRD, spec and CLAUDE.md must be updated to match. The PRD currently says FR-1 "map loads
   showing all existing pins", lists "pin clustering" as a non-goal, and lists unbounded loading as an
   accepted risk.
