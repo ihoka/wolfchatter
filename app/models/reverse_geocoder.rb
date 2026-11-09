@@ -6,12 +6,14 @@ class ReverseGeocoder
   LOCALITY_KEYS = %w[city town village municipality county state].freeze
   NETWORK_ERRORS = [
     Net::OpenTimeout, Net::ReadTimeout, SocketError, SystemCallError,
-    OpenSSL::SSL::SSLError, JSON::ParserError
+    OpenSSL::SSL::SSLError, JSON::ParserError,
+    EOFError, IOError, Net::ProtocolError, Net::HTTPBadResponse,
+    Net::HTTPHeaderSyntaxError, Zlib::Error
   ].freeze
 
   def place_name(latitude, longitude)
     data = fetch(latitude, longitude)
-    format(data)&.truncate(MAX_LENGTH)
+    format_name(data)&.truncate(MAX_LENGTH)
   rescue *NETWORK_ERRORS => e
     Rails.logger.warn("ReverseGeocoder failed: #{e.class}: #{e.message}")
     nil
@@ -38,7 +40,7 @@ class ReverseGeocoder
     JSON.parse(response.body)
   end
 
-  def format(data)
+  def format_name(data)
     return nil unless data.is_a?(Hash)
     address = data["address"].is_a?(Hash) ? data["address"] : {}
     locality = LOCALITY_KEYS.filter_map { |key| address[key].presence }.first
