@@ -140,7 +140,8 @@ Wolfchatter was built with Claude Code, and the process is committed alongside t
 - **Docs before code.** A brainstorm produced the [design spec](docs/superpowers/specs/2026-11-09-wolfchatter-design.md),
   which was distilled into the [PRD](docs/prd.md) and an [overview plan](docs/plans/00-overview.md)
   with eight phases. Each phase got its own detailed plan in [`docs/plans/`](docs/plans/), written
-  just before it started and approved by the lead developer.
+  just before it started. The lead developer approved the plans for phases 0–2 one by one. Phases 3–7
+  ran under a standing go-ahead, and the lead developer reviews the end result.
 - **Subagent-driven execution.** Each task in a plan went to a fresh implementer subagent, with TDD
   and small commits. A fresh reviewer checked each task, and a whole-branch review ran before each
   phase PR. One branch and one PR per phase, merged without squashing.
