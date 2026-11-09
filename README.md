@@ -106,4 +106,5 @@ bin/bundler-audit
 - [Product requirements (PRD)](docs/prd.md)
 - [Design spec](docs/superpowers/specs/2026-11-09-wolfchatter-design.md)
 - [Delivery plans](docs/plans/00-overview.md)
+- [Infrastructure and cost estimate](docs/infrastructure.md): fly.io deployment plan and monthly costs
 - [CLAUDE.md](CLAUDE.md): conventions and workflow for contributors and coding agents
