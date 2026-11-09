@@ -1,4 +1,5 @@
 class MessagesController < ApplicationController
+  rate_limit to: 30, within: 1.minute, only: :create, with: :render_rate_limited
   before_action :set_chatroom
 
   # Turbo stream only: the panel frame advances history on redirects, so this
@@ -28,6 +29,20 @@ class MessagesController < ApplicationController
   end
 
   private
+
+  def render_rate_limited
+    set_chatroom
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          helpers.dom_id(@chatroom, :message_form),
+          partial: "messages/form",
+          locals: { chatroom: @chatroom, alert: "You're sending messages too fast — slow down a little." }
+        ), status: :too_many_requests
+      end
+      format.any { head :too_many_requests }
+    end
+  end
 
   def render_name_form
     respond_to do |format|

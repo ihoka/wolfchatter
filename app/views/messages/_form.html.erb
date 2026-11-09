@@ -1,7 +1,10 @@
-<%# locals: (chatroom:, message: nil, autofocus: false) %>
+<%# locals: (chatroom:, message: nil, autofocus: false, alert: nil) %>
 <% message ||= Message.new(chatroom: chatroom) %>
 <%= form_with model: message, scope: :message, url: chatroom_messages_path(chatroom),
       id: dom_id(chatroom, :message_form), class: "mt-2 space-y-2" do |form| %>
+  <% if alert %>
+    <p role="alert" class="text-sm text-red-700"><%= alert %></p>
+  <% end %>
   <% message.errors.full_messages.each do |error| %>
     <p role="alert" class="text-sm text-red-700"><%= error %></p>
   <% end %>

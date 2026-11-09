@@ -38,6 +38,16 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "<script>x</script>"
   end
 
+  test "the 31st message within a minute is rate limited" do
+    30.times { post chatroom_messages_path(@room), params: { message: { body: "hi" } }, as: :turbo_stream }
+    assert_no_difference -> { Message.count } do
+      post chatroom_messages_path(@room), params: { message: { body: "hi" } }, as: :turbo_stream
+    end
+    assert_response :too_many_requests
+    assert_select "turbo-stream[action=replace][target=?]", dom_id(@room, :message_form)
+    assert_includes response.body, "sending messages too fast"
+  end
+
   test "room page lists recent messages oldest first" do
     get chatroom_path(@room)
     bodies = css_select("##{dom_id(@room, :messages)} article").map { _1.at_css("p")&.text.to_s.strip }

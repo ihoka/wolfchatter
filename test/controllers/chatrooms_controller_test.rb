@@ -32,6 +32,15 @@ class ChatroomsControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame#chatroom_panel"
   end
 
+  test "the 11th room created within a minute is rate limited" do
+    10.times { post chatrooms_path, params: { chatroom: { latitude: 45.5, longitude: 10.25 } } }
+    assert_no_difference "Chatroom.count" do
+      post chatrooms_path, params: { chatroom: { latitude: 45.5, longitude: 10.25 } }
+    end
+    assert_response :too_many_requests
+    assert_select "turbo-frame#chatroom_panel", text: /creating rooms too fast/
+  end
+
   test "map starts centred on Europe at zoom 5" do
     get root_path
     assert_select "#map_container[data-map-zoom-value='5'][data-map-center-value='[48.0, 15.0]']"
