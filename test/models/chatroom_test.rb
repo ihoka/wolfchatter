@@ -55,4 +55,19 @@ class ChatroomTest < ActiveSupport::TestCase
   test "place names longer than 120 characters are invalid" do
     assert_not chatrooms(:cluj).tap { _1.place_name = "a" * 121 }.valid?
   end
+
+  test "recent_messages defaults to the newest 100" do
+    room = chatrooms(:rome)
+    base = Time.current
+    now = Time.current
+    rows = 101.times.map do |i|
+      { chatroom_id: room.id, author_name: "A", body: "m#{i}", created_at: base + i.seconds, updated_at: now }
+    end
+    Message.insert_all(rows)
+    recent = room.recent_messages
+    assert_equal 100, recent.size
+    assert_equal "m1", recent.first.body
+    assert_equal "m100", recent.last.body
+    assert_not_includes recent.map(&:body), "m0"
+  end
 end

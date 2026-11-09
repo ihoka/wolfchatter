@@ -50,4 +50,16 @@ class DisplayNamesControllerTest < ActionDispatch::IntegrationTest
     patch display_name_path, params: { display_name: { name: "Ana" }, chatroom_id: chatrooms(:cluj).id }
     assert_response :not_acceptable
   end
+
+  test "the name cookie is HttpOnly and SameSite=Lax" do
+    patch display_name_path, params: { display_name: { name: "Ana" }, chatroom_id: chatrooms(:cluj).id }, as: :turbo_stream
+    cookie = Array(response.headers["Set-Cookie"]).flat_map(&:lines).grep(/\Adisplay_name=/).first
+    assert_match(/httponly/i, cookie)
+    assert_match(/samesite=lax/i, cookie)
+  end
+
+  test "updating without a chatroom id is a bad request" do
+    patch display_name_path, params: { display_name: { name: "Ana" } }, as: :turbo_stream
+    assert_response :bad_request
+  end
 end
