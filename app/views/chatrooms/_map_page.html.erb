@@ -1,3 +1,4 @@
+<%# Attribution is a static literal: Leaflet renders it as HTML, so never interpolate user data. %>
 <div id="map_container" data-turbo-permanent
      data-controller="map"
      data-action="marker:connect@window->map#register"
@@ -12,9 +13,9 @@
   <div id="markers" hidden>
     <%= render partial: "chatrooms/marker", collection: chatrooms, as: :chatroom %>
   </div>
-  <%= form_with url: chatrooms_path, id: "new_chatroom_form", hidden: true, data: { turbo_frame: "chatroom_panel", map_target: "form" } do |form| %>
-    <%= form.hidden_field "chatroom[latitude]", id: "chatroom_latitude", data: { map_target: "latitude" } %>
-    <%= form.hidden_field "chatroom[longitude]", id: "chatroom_longitude", data: { map_target: "longitude" } %>
+  <%= form_with url: chatrooms_path, id: "new_chatroom_form", hidden: true, data: { turbo_frame: "chatroom_panel" } do |form| %>
+    <%= form.hidden_field "chatroom[latitude]", id: "chatroom_latitude" %>
+    <%= form.hidden_field "chatroom[longitude]", id: "chatroom_longitude" %>
   <% end %>
 </div>
 

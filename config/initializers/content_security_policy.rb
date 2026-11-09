@@ -13,9 +13,14 @@ Rails.application.configure do
     policy.object_src  :none
     policy.base_uri    :self
     policy.frame_ancestors :none
+    policy.form_action :self
   end
 
-  # Generate per-request nonces for the importmap, inline scripts and inline styles.
-  config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.base64(16) }
+  # The nonce is per session, not per request: the browser keeps the CSP header of
+  # the first full page load, while Turbo Drive swaps in the csp-nonce meta of each
+  # later page. A per-request nonce would not match the kept header. The session id
+  # is not used because it is empty for a new visitor; a random value stored in the
+  # session is generated once, and writing it makes the session cookie persist.
+  config.content_security_policy_nonce_generator = ->(request) { request.session[:csp_nonce] ||= SecureRandom.base64(16) }
   config.content_security_policy_nonce_directives = %w[script-src style-src]
 end
