@@ -26,6 +26,16 @@ per task, review gate between tasks, TDD, small single-purpose commits.
 | 4 | Place names | Nominatim reverse-geocoding job, live title update, fallback title | Job tests with stubbed HTTP (found / not found / failure) |
 | 5 | Infra doc | `docs/infrastructure.md`: fly.io staging + production table with assumptions | Doc reviewed by lead developer |
 | 6 | Self-review | `bin/review`, review agents + `/self-review` skill, `docs/review/report.md`, `docs/review/notes.md` | Lead developer has triaged every finding; fixes merged |
+| 7 | README polish | Final `README.md` as the project's front page (see below) | Lead developer reads it top to bottom; a fresh clone runs by following it alone |
+
+## README (built up across phases, finished in phase 7)
+
+Phase 1 writes the setup/run/test core; each later phase appends what it changed. Phase 7 makes it
+the front page: one-paragraph pitch + screenshot or short GIF of two browsers chatting live;
+features; quick start (≤ 5 commands); architecture at a glance (request → Turbo Stream →
+Action Cable flow, data model, geocoding job) with links to the PRD; key decisions and trade-offs;
+improvements over the mockups; known limitations / not done; how the project was built with AI
+(CLAUDE.md, plans, subagent-driven execution, self-review) with links; docs index.
 
 ## Cut order (if time runs short)
 
@@ -33,7 +43,7 @@ per task, review gate between tasks, TDD, small single-purpose commits.
 2. Live pin fan-out to other browsers (phase 3) → pins appear on reload.
 3. Geocoding entirely (phase 4) → `Chatroom <id>` titles only.
 
-Each cut is recorded in the README and PRD as "documented, not done". Phase 6 is never cut.
+Each cut is recorded in the README and PRD as "documented, not done". Phases 6 and 7 are never cut.
 
 ## Human checkpoints
 
