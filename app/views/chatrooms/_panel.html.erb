@@ -1,5 +1,9 @@
 <div class="p-4">
   <h2 id="<%= dom_id(chatroom, :title) %>" class="text-lg font-semibold"><%= chatroom.title %></h2>
 </div>
+<div id="<%= dom_id(chatroom, :messages) %>" role="log" aria-live="polite" data-controller="scroll"
+     class="max-h-[50vh] overflow-y-auto">
+  <%= render partial: "messages/message", collection: chatroom.recent_messages, as: :message %>
+</div>
 <%= render "chatrooms/compose", chatroom: chatroom %>
 <%= render "chatrooms/marker", chatroom: chatroom, id_suffix: :panel_marker %>

@@ -1,0 +1,12 @@
+<%# locals: (chatroom:, message: nil) %>
+<% message ||= chatroom.messages.new %>
+<%= form_with model: message, scope: :message, url: chatroom_messages_path(chatroom),
+      id: dom_id(chatroom, :message_form), class: "mt-2 space-y-2" do |form| %>
+  <% message.errors.full_messages.each do |error| %>
+    <p class="text-sm text-red-700"><%= error %></p>
+  <% end %>
+  <%= form.text_field :body, value: message.body, placeholder: "write message here",
+        maxlength: Message::MAX_BODY_LENGTH, required: true, autocomplete: "off",
+        class: "w-full rounded border px-2 py-1" %>
+  <%= form.submit "Submit", class: "rounded bg-blue-700 px-3 py-1 text-white" %>
+<% end %>
