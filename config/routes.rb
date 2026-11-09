@@ -10,6 +10,5 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   # Defines the root path route ("/")
-  # Temporary until Task 3 replaces it with chatrooms#index.
-  root "rails/welcome#index"
+  root "chatrooms#index"
 end
