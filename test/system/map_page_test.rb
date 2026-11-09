@@ -70,4 +70,16 @@ class MapPageTest < ApplicationSystemTestCase
     assert_in_delta rome.latitude, center["lat"], 0.01
     assert_in_delta rome.longitude, center["lng"], 0.01
   end
+
+  test "panning loads pins in the new area" do
+    far = Chatroom.create!(latitude: 40.0, longitude: -100.0, place_name: "Far Away")
+    visit root_path
+    assert_selector ".leaflet-marker-icon", count: Chatroom.count - 1
+    assert_no_selector ".leaflet-marker-icon[title='Far Away']"
+
+    mark_marker_set_stale
+    page.execute_script("document.getElementById('map').leafletMap.panTo([#{far.latitude}, #{far.longitude}])")
+    assert_marker_set_refreshed
+    assert_selector ".leaflet-marker-icon[title='Far Away']", count: 1
+  end
 end
