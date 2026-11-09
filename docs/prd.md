@@ -32,8 +32,8 @@ Wolfchatter is a real-time chat app on a map. Clicking anywhere on the map drops
 | Front-end | Hotwire (Turbo Frames/Streams), Stimulus only where JS is unavoidable (Leaflet map, scroll-to-bottom, name form); importmap, no Node build; Tailwind via `tailwindcss-rails` | Hotwire covers navigation and live updates without an SPA; no build step. |
 | Map | Leaflet with standard OpenStreetMap tiles, loaded via importmap; OpenStreetMap attribution stays visible per the tile usage policy | No API key needed; matches the mockup's Leaflet look. |
 | Real-time delivery | Turbo Streams over Action Cable, backed by Solid Cable on Postgres | One database server (Postgres), no Redis to run. |
-| Background jobs | Solid Queue on Postgres | Same reason; geocoding must not block the request. |
-| Geocoding | Nominatim reverse API, called server-side from the job with an identifying User-Agent and timeouts | Free and keyless. The job uses Solid Queue `limits_concurrency to: 1, key: "nominatim"` and waits ~1s after each call, so at most 1 req/s globally; failures are swallowed quietly. |
+| Background jobs | Solid Queue on Postgres | No Redis; geocoding must not block the request. |
+| Geocoding | Nominatim reverse API, called server-side from the job with an identifying User-Agent and timeouts | Free and keyless. The job uses Solid Queue `limits_concurrency to: 1, key: "nominatim"` and waits ~1s after each call, so at most 1 req/s globally; failures are logged; the fallback title stays. |
 | State management | Server is the source of truth; the client holds only Leaflet map state and the selected room (in the URL); display name in a cookie | Fewer sync bugs; deep links for free. |
 | Testing | Minitest (models, requests, jobs) plus system tests with headless Chromium; Nominatim stubbed; run locally only | Rails default; stubs keep tests offline and deterministic. |
 

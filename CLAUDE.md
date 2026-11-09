@@ -28,8 +28,9 @@ Available once the Rails app is generated (phase 1).
 - Thin controllers. Logic lives in models or small POROs under `app/models`. Jobs only orchestrate.
 - Declare broadcasts in models (`broadcasts_to` or explicit `broadcast_*_later`), rendered from
   partials shared with the normal views.
-- Live map pins: render marker elements and let a Stimulus controller manage them, deduped by room id.
-  Do not push map state as JSON or build a parallel client-side store.
+- Live map pins: initial and live pins are both rendered as marker elements (data attributes) in
+  `#markers`; no JSON endpoint or JSON blob, no client-side store. A Stimulus controller manages
+  them, deduped by room id.
 - Validate at the model: display name stripped, required, max 40; message body max 1000.
   Limits are defined in the PRD; change them there first.
 - Strong params everywhere. Never render user input with `html_safe` or `raw`.
@@ -39,8 +40,9 @@ Available once the Rails app is generated (phase 1).
 ## Workflow
 
 - TDD: write the failing test, watch it fail, then implement.
-- Every N+1 is a bug (Prosopite raises in test from phase 1).
+- Every N+1 is a bug: fix the query (includes/preload/counter cache); never disable, allowlist or rescue Prosopite to get green.
 - Verify before claiming done: run the relevant commands above and quote the result.
 - Small commits with Conventional Commit prefixes: `feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`.
 - One branch and PR per phase. Plans in `docs/plans/` are the source of truth for task scope.
-- Docs describe a product project. Record decisions with their reason.
+- Precedence: spec > PRD > phase plan > these conventions; if a plan contradicts a convention, stop and ask the lead developer.
+- Write docs for teammates; record every decision with its reason.
