@@ -102,8 +102,11 @@ The change fails, even if it works, if:
 - **Antimeridian:** Leaflet bounds can run past ±180 when the world wraps. The client sends
   `getBounds()` wrapped per corner. When `west > east` the server queries two longitude ranges. If
   the box spans 360° or more, longitude is unrestricted.
-- The endpoint is read-only and cheap (two indexed queries), so it gets no rate limit. Revisit this
-  if abuse shows up. Map pages and this endpoint send `no-cache`.
+- The endpoint is read-only and has no rate limit. Revisit this if abuse shows up. (As built: at
+  most 3 queries. The pins query is capped and indexed, but the cluster `GROUP BY` reads every room
+  in view, so at world zoom its cost grows with the total number of rooms: 7.6 ms at 10k rooms in
+  the phase 8 benchmark. Accepted as a risk in the PRD; past roughly 100k rooms, pre-aggregate the
+  grid and cache it per zoom level.) Map pages and this endpoint send `no-cache`.
 
 ### Live updates
 
@@ -179,7 +182,9 @@ down.
 1. **Panel pin.** The panel's room has its own Leaflet layer, outside the swapped layer, so the
    swap never removes it. In pin mode, a fetched pin with the same id is skipped. In cluster mode the
    panel pin is drawn on top of the cluster that also counts it. It's the room you're in, so showing
-   it twice is intended.
+   it twice is intended. Only the open room is on the panel layer: when another room opens, the
+   previous room's pin moves to the swapped layer, so it stays drawn until the next swap replaces
+   it, and a session of browsing never leaves a trail of pinned rooms.
 2. **Live pins versus a refetch.** The refetch replaces the layer. Any live room whose broadcast
    arrived after the fetch request was sent is applied again after the swap, so a room created
    mid-fetch never vanishes.

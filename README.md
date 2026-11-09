@@ -65,7 +65,7 @@ flowchart TD
   Stim -- "map click: POST /chatrooms<br/>pin click: GET /chatrooms/:id" --> Ctrl
   Stim -- "after load and each moveend: GET /chatrooms/markers (viewport)" --> Markers
   Markers -- "Turbo Stream: update #markers" --> Stim
-  Markers -- "at most 3 indexed queries" --> PG
+  Markers -- "at most 3 queries; clusters group every room in view" --> PG
   Ctrl -- "panel HTML" --> Frame
   Ctrl --> Models --> PG
   Models -- "enqueue on create" --> Queue --> Job
@@ -138,6 +138,11 @@ one request per second, as Nominatim's usage policy requires.
 - **No edit, delete or moderation.** Rate limits slow abuse but can't undo it.
 - **Cluster counts can drift by one.** A live room can be counted twice, or the creator's own
   cluster might not be incremented, until the next pan or zoom reloads the exact counts.
+- **Zoomed-out requests read every room in view.** A reply never holds more than 300 pins or
+  clusters, but the cluster query groups every room in the box, so at world zoom its cost grows
+  with the total number of rooms (7.6 ms at 10,000 rooms in the phase 8 benchmark). The markers
+  endpoint has no rate limit. Past roughly 100,000 rooms we would pre-aggregate the grid and cache
+  it per zoom level.
 - **Cluster badges can overlap.** Neighbouring badges can touch at dense zooms. The grid is fixed
   per zoom level and does not merge neighbours.
 - **Cells look taller near the poles.** The grid is plain degrees of latitude and longitude, so on

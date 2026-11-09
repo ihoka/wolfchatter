@@ -1,5 +1,8 @@
 # Chatrooms visible in a map viewport: individual pins when there are PIN_LIMIT or fewer,
-# otherwise counts per cell of a global grid. At most 3 queries; each is bounded by PIN_LIMIT.
+# otherwise counts per cell of a global grid. At most 3 queries. The pins query is capped at
+# PIN_LIMIT + 1 rows and uses the (latitude, longitude) index. The cluster GROUP BY returns at
+# most PIN_LIMIT cells but reads every room in the box, so at world zoom its cost grows with the
+# total number of rooms. The lone-room lookup loads at most PIN_LIMIT rows by primary key.
 class MapMarkers
   PIN_LIMIT = 300
   CELL_PX = 80

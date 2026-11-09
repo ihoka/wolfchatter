@@ -69,7 +69,7 @@ The map page renders no pins. After load, and after every pan or zoom (`moveend`
 
 - **Pins or clusters is decided by count, not zoom.** If the box holds 300 rooms or fewer (`MapMarkers::PIN_LIMIT`), the reply is pins, so a small map looks the same at every zoom. Otherwise it is clusters: counts per cell of a global grid, where the cell edge is `360 / 2**zoom * (80 / 256)` degrees (`MapMarkers::CELL_PX` is 80). The grid is doubled until the box holds at most 300 cells, so a zoomed-out reply is always bounded.
 - **Lone rooms:** a cell with one room is drawn as an ordinary pin, never as a "1" bubble.
-- **Cost:** at most 3 queries per request, each bounded by 300 rows and served by the `(latitude, longitude)` index on `chatrooms`.
+- **Cost:** at most 3 queries per request. The pins query is capped at 301 rows and uses the `(latitude, longitude)` index on `chatrooms`. In a clustered view, the cluster `GROUP BY` returns at most 300 cells but reads every room in view, so at world zoom its cost grows with the total number of rooms (7.6 ms for a world view at 10,000 rooms in the phase 8 benchmark); lone rooms are then loaded by primary key, at most 300. Only the output is bounded by `PIN_LIMIT`. The endpoint has no rate limit.
 - **Bad input:** missing, non-numeric or non-finite parameters, a longitude outside -180..180, or a zoom outside 0..19 return 400 (latitudes are clamped to -90..90); a request that doesn't accept a Turbo Stream returns 406. Responses are `no-cache`.
 - **Clicking a cluster** zooms in by 2 levels (capped at 19). It never creates a room.
 - **Deep links:** a full load of `/chatrooms/:id` centres the map on that room at zoom 5, and the panel carries its own marker, so the room is always pinned.
@@ -93,4 +93,5 @@ Two Turbo Stream families:
 - **Accidental room creation.** One click creates a room with no confirm step, as in the mockup; accepted.
 - **Nominatim 1 req/s policy.** Geocoding is serialized to 1 req/s; under heavy creation a backlog builds and titles arrive late.
 - **Rate limits:** 10 rooms and 30 messages per minute per IP (Rails `rate_limit`, Solid Cache). Per-IP, so a distributed flood is slowed, not stopped.
+- **Cluster query cost grows with the room count.** A zoomed-out markers request groups every room in view, so its cost grows with the total number of rooms, and the endpoint has no rate limit. Accepted: 7.6 ms for a world view at 10,000 rooms (phase 8 benchmark). Past roughly 100,000 rooms we would pre-aggregate the grid and cache it per zoom level.
 - **Cluster counts can drift.** Live updates adjust counts locally, so a count can be off by one between fetches (for example a room counted twice, or the creator's own cluster not incremented). The next pan or zoom reloads the exact counts.
