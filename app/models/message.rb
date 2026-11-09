@@ -5,7 +5,7 @@ class Message < ApplicationRecord
 
   normalizes :author_name, :body, with: ->(value) { value.strip }
 
-  validates :author_name, presence: true, length: { maximum: 40 }
+  validates :author_name, presence: true, length: { maximum: DisplayName::MAX_LENGTH }
   validates :body, presence: true, length: { maximum: MAX_BODY_LENGTH }
 
   scope :chronological, -> { order(:created_at, :id) }

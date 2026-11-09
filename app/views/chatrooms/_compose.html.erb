@@ -1,0 +1,13 @@
+<%# locals: (chatroom:, name: current_display_name, display_name: nil) %>
+<div id="<%= dom_id(chatroom, :compose) %>" class="border-t p-4">
+  <% if name.present? %>
+    <p class="text-sm">
+      Chatting as <strong><%= name %></strong>
+      <%= button_to "change", display_name_path(chatroom_id: chatroom.id), method: :delete,
+            form: { class: "inline" }, class: "ml-2 text-blue-700 underline" %>
+    </p>
+    <%# Task 3: render the message form here. %>
+  <% else %>
+    <%= render "display_names/form", chatroom: chatroom, display_name: display_name || DisplayName.new %>
+  <% end %>
+</div>
