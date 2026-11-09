@@ -2,9 +2,10 @@ class Chatroom < ApplicationRecord
   has_many :messages, dependent: :destroy
 
   after_create_commit do
+    # Enqueue first: a failing broadcast must not leave the room without a geocode job.
+    GeocodeChatroomJob.perform_later(self)
     broadcast_append_to "chatrooms", target: "markers",
                                      partial: "chatrooms/marker", locals: { chatroom: self }
-    GeocodeChatroomJob.perform_later(self)
   end
 
   validates :latitude, presence: true,
