@@ -39,6 +39,32 @@ class ClustersTest < ApplicationSystemTestCase
     assert_selector ".leaflet-marker-icon[title]"
   end
 
+  test "opening another room releases the previous room's pin" do
+    room_a = Chatroom.create!(latitude: 45.05, longitude: 10.05, place_name: "Room A")
+    room_b = Chatroom.create!(latitude: 45.05, longitude: 10.02, place_name: "Room B")
+    visit chatroom_path(room_a)
+    assert_selector "turbo-frame#chatroom_panel h2", text: "Room A"
+    assert_selector ".map-cluster"
+
+    mark_marker_set_stale
+    page.execute_script("document.getElementById('map').leafletMap.setZoom(11)")
+    assert_marker_set_refreshed
+    assert_no_selector ".map-cluster"
+
+    find(".leaflet-marker-icon[title='Room B']").click
+    assert_selector "turbo-frame#chatroom_panel h2", text: "Room B"
+    assert_current_path chatroom_path(room_b)
+    assert_selector ".leaflet-marker-icon[title='Room A']", count: 1
+    assert_selector ".leaflet-marker-icon[title='Room B']", count: 1
+
+    mark_marker_set_stale
+    page.execute_script("document.getElementById('map').leafletMap.setZoom(5)")
+    assert_marker_set_refreshed
+    assert_selector ".map-cluster"
+    assert_no_selector ".leaflet-marker-icon[title='Room A']"
+    assert_selector ".leaflet-marker-icon[title='Room B']", count: 1
+  end
+
   private
 
   # The panel covers the top-right corner of the map, so click the cluster nearest the

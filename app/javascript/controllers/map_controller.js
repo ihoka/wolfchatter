@@ -15,7 +15,8 @@ const CLUSTER_ZOOM_STEP = 2
 // controller swaps the drawn set for the new one in one step.
 //
 // Single rooms arrive as marker elements (marker:connect), by role:
-// - "panel": the open room. Kept on its own layer that no fetch clears.
+// - "panel": the open room. Kept on its own layer that no fetch clears. When another room opens,
+//   the previous room's pin moves to the fetched set, and the next swap replaces it.
 // - "live": a room just created anywhere. Drawn if it falls in view (pins mode) or added to its
 //   grid cell (clusters mode). Re-applied after a swap if it arrived after that fetch was sent.
 // - "set": a fetched pin, or a place-name broadcast. Only re-titles a pin already drawn.
@@ -194,6 +195,16 @@ export default class extends Controller {
       if (existing.options.title !== detail.title) this.retitle(existing, detail.title)
       return
     }
+    // Only the open room lives on the panel layer. The previous one joins the fetched set, so it
+    // stays drawn until the next swap replaces it, like any other fetched pin.
+    for (const [id, marker] of state.panelPins) {
+      state.panelLayer.removeLayer(marker)
+      state.setPins.set(id, marker.addTo(state.setLayer))
+      for (const single of state.lone.values()) {
+        if (single.id === id) single.marker = marker
+      }
+    }
+    state.panelPins.clear()
     // Move the room off the fetched layer so a later fetch cannot remove it.
     const fetched = state.setPins.get(detail.id)
     if (fetched) {
