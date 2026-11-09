@@ -1,0 +1,7 @@
+<turbo-frame id="chatroom_panel">
+  <ul class="p-4 text-red-700">
+    <% @chatroom.errors.full_messages.each do |message| %>
+      <li><%= message %></li>
+    <% end %>
+  </ul>
+</turbo-frame>
