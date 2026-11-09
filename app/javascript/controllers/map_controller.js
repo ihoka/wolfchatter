@@ -132,6 +132,8 @@ export default class extends Controller {
     }
     let moveTimer = null
     map.on("moveend", () => {
+      // The reply in flight is for the old view: drop it now so it cannot land during the debounce.
+      inFlight?.abort()
       clearTimeout(moveTimer)
       moveTimer = setTimeout(state.fetchMarkers, MOVE_DEBOUNCE_MS)
     })

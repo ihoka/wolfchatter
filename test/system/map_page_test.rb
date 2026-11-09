@@ -82,4 +82,31 @@ class MapPageTest < ApplicationSystemTestCase
     assert_marker_set_refreshed
     assert_selector ".leaflet-marker-icon[title='Far Away']", count: 1
   end
+
+  test "moving the map aborts the fetch in flight at once" do
+    visit root_path
+    assert_selector ".leaflet-marker-icon", count: Chatroom.count
+    # Hold the next markers request so it stays in flight until the test releases it.
+    page.execute_script(<<~JS)
+      const realFetch = window.fetch
+      window.fetch = async (...args) => {
+        if (!String(args[0]).includes("/chatrooms/markers")) return realFetch(...args)
+        window.fetch = realFetch
+        window.heldSignal = args[1].signal
+        document.documentElement.dataset.markersHeld = ""
+        await new Promise((resolve) => { window.releaseMarkers = resolve })
+        return realFetch(...args)
+      }
+    JS
+    mark_marker_set_stale
+    page.execute_script("document.getElementById('map').leafletMap.panBy([60, 40])")
+    assert_selector "html[data-markers-held]", visible: :all
+
+    # A stale reply must not land during the debounce, so moveend aborts it straight away.
+    aborted = map_script("(map.fire('moveend'), window.heldSignal.aborted)")
+    assert aborted, "expected moveend to abort the fetch in flight"
+    page.execute_script("window.releaseMarkers()")
+    assert_marker_set_refreshed
+    assert_selector ".leaflet-marker-icon", count: Chatroom.count
+  end
 end
