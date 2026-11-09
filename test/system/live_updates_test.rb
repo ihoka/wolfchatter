@@ -61,7 +61,8 @@ class LiveUpdatesTest < ApplicationSystemTestCase
     seed_dense_area
     visit root_path
     assert_selector "turbo-cable-stream-source[connected]", visible: :all
-    size = MapMarkers.cell_size_for(5)
+    # The cell size the server used for this view (it may coarsen the grid).
+    size = Float(find("#marker_set[data-marker-set-mode-value=clusters]", visible: :all)["data-marker-set-cell-size-value"])
     lat, lng = 45.05, 10.05
     cell_lat = (lat / size).floor * size
     cell_lng = (lng / size).floor * size
