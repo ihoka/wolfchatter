@@ -3,7 +3,8 @@ import { Turbo } from "@hotwired/turbo-rails"
 import * as L from "leaflet"
 
 // Owns the Leaflet map. Pins live for the page's lifetime: they are added once
-// per room id and never removed when a marker element disconnects.
+// per room id and never removed when a marker element disconnects, and re-titled
+// when a marker element arrives with a new title.
 export default class extends Controller {
   static targets = ["map"]
   static values = {
@@ -83,8 +84,26 @@ export default class extends Controller {
     return el
   }
 
+  // A room's title changes when its place name arrives. Update the pin in place.
+  retitle(pin, title) {
+    pin.options.title = title
+    pin.options.alt = title
+    const el = pin.getElement()
+    if (el) {
+      el.setAttribute("title", title)
+      el.setAttribute("alt", title)
+    }
+    pin.setTooltipContent(this.textNode(title))
+  }
+
   add({ id, lat, lng, title, url }) {
-    if (!this.map || this.pins.has(id)) return
+    if (!this.map) return
+
+    const existing = this.pins.get(id)
+    if (existing) {
+      if (existing.options.title !== title) this.retitle(existing, title)
+      return
+    }
 
     const pin = L.marker([lat, lng], { icon: this.icon, title, alt: title })
       .bindTooltip(this.textNode(title))
