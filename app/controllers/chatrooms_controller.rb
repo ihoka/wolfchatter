@@ -22,6 +22,7 @@ class ChatroomsController < ApplicationController
   private
 
   def render_rate_limited
+    response.set_header("Retry-After", "60")
     render :rate_limited, status: :too_many_requests
   end
 

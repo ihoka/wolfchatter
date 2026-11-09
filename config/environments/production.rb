@@ -62,7 +62,13 @@ Rails.application.configure do
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   # Allowed hosts come from APP_HOSTS (comma-separated, e.g. "wolfchatter.example.com").
-  config.hosts.concat(ENV.fetch("APP_HOSTS", "").split(",").map(&:strip).reject(&:empty?))
+  app_hosts = ENV.fetch("APP_HOSTS", "").split(",").map(&:strip).reject(&:empty?)
+  config.hosts.concat(app_hosts)
+  if app_hosts.empty?
+    config.after_initialize do
+      Rails.logger.warn("APP_HOSTS is empty: host authorization is off, any Host header is accepted.")
+    end
+  end
 
   # Skip DNS rebinding protection for the default health check endpoint.
   config.host_authorization = { exclude: ->(request) { request.path == "/up" } }

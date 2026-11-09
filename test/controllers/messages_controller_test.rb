@@ -55,9 +55,11 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
   test "the 31st message within a minute is rate limited" do
     30.times { post chatroom_messages_path(@room), params: { message: { body: "hi" } }, as: :turbo_stream }
     assert_no_difference -> { Message.count } do
-      post chatroom_messages_path(@room), params: { message: { body: "hi" } }, as: :turbo_stream
+      post chatroom_messages_path(@room), params: { message: { body: "my draft" } }, as: :turbo_stream
     end
     assert_response :too_many_requests
+    assert_equal "60", response.headers["Retry-After"]
+    assert_select "input[name='message[body]'][value=?]", "my draft"
     assert_select "turbo-stream[action=replace][target=?]", dom_id(@room, :message_form)
     assert_includes response.body, "sending messages too fast"
   end

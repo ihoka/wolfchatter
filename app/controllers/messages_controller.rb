@@ -32,12 +32,15 @@ class MessagesController < ApplicationController
 
   def render_rate_limited
     set_chatroom
+    response.set_header("Retry-After", "60")
+    draft = Message.new(chatroom: @chatroom, body: params.dig(:message, :body))
     respond_to do |format|
       format.turbo_stream do
         render turbo_stream: turbo_stream.replace(
           helpers.dom_id(@chatroom, :message_form),
           partial: "messages/form",
-          locals: { chatroom: @chatroom, alert: "You're sending messages too fast — slow down a little." }
+          locals: { chatroom: @chatroom, message: draft,
+                    alert: "You're sending messages too fast — slow down a little." }
         ), status: :too_many_requests
       end
       format.any { head :too_many_requests }

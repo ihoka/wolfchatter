@@ -58,10 +58,9 @@ class ChatroomTest < ActiveSupport::TestCase
 
   test "recent_messages defaults to the newest 100" do
     room = chatrooms(:rome)
-    base = Time.current
     now = Time.current
     rows = 101.times.map do |i|
-      { chatroom_id: room.id, author_name: "A", body: "m#{i}", created_at: base + i.seconds, updated_at: now }
+      { chatroom_id: room.id, author_name: "A", body: "m#{i}", created_at: now + i.seconds, updated_at: now }
     end
     Message.insert_all(rows)
     recent = room.recent_messages
