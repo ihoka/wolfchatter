@@ -8,7 +8,7 @@ class Message < ApplicationRecord
                                   partial: "messages/message", locals: { message: self }
   end
 
-  normalizes :author_name, :body, with: ->(value) { value.strip }
+  normalizes :author_name, :body, with: ->(value) { VisibleText.strip(value) }
 
   validates :author_name, presence: true, length: { maximum: DisplayName::MAX_LENGTH }
   validates :body, presence: true, length: { maximum: MAX_BODY_LENGTH }

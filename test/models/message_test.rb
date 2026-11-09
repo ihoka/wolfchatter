@@ -10,6 +10,14 @@ class MessageTest < ActiveSupport::TestCase
     assert_equal "hi", message.body
   end
 
+  test "rejects zero-width-only author and body, strips invisible edges" do
+    assert_not chatrooms(:cluj).messages.build(author_name: "Ana", body: "\u200B").valid?
+    assert_not chatrooms(:cluj).messages.build(author_name: "\u200B", body: "hi").valid?
+    message = chatrooms(:cluj).messages.create!(author_name: " \u200BAna\u200B ", body: " \u200Bhi\u200B ")
+    assert_equal "Ana", message.author_name
+    assert_equal "hi", message.body
+  end
+
   test "rejects blank or whitespace-only body" do
     assert_not chatrooms(:cluj).messages.build(author_name: "Ana", body: "   ").valid?
   end
