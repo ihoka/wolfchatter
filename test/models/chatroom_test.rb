@@ -37,4 +37,11 @@ class ChatroomTest < ActiveSupport::TestCase
       Chatroom.create!(latitude: 1, longitude: 2)
     end
   end
+
+  test "a new place name broadcasts the title and the marker" do
+    room = chatrooms(:cluj)
+    assert_turbo_stream_broadcasts(room, count: 1) do
+      assert_turbo_stream_broadcasts("chatrooms", count: 1) { room.update!(place_name: "Cluj-Napoca, Romania") }
+    end
+  end
 end

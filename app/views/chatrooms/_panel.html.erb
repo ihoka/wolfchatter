@@ -1,5 +1,5 @@
 <div class="p-4">
-  <h2 id="<%= dom_id(chatroom, :title) %>" class="text-lg font-semibold"><%= chatroom.title %></h2>
+  <%= render "chatrooms/title", chatroom: chatroom %>
 </div>
 <div id="<%= dom_id(chatroom, :messages) %>" role="log" aria-live="polite" data-controller="scroll"
      class="max-h-[50vh] overflow-y-auto">
