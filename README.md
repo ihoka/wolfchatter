@@ -4,8 +4,24 @@ Wolfchatter is a real-time chat app on a map. Click anywhere to drop a pin; each
 anyone can join, and new messages and pins appear live for everyone watching.
 
 Built on Rails 8.1, Hotwire, PostgreSQL, Solid Queue and Solid Cable (no Redis, no Node build).
-This is a work in progress: only the map page with its empty chat panel exists so far.
+This is a work in progress: rooms on the map work; messages and live updates come next.
 The full requirements are in the [PRD](docs/prd.md).
+
+## Using Wolfchatter
+
+- **Open a room:** click anywhere on the map. A pin drops there and the panel on the right
+  switches to the new room.
+- **Switch rooms:** click any pin. The panel shows that room, and the URL changes to
+  `/chatrooms/:id`, so links, refresh and back/forward all work.
+- **Zoom:** use the +/− buttons or the scroll wheel. Double-click zoom is off, so a double-click
+  can't create two rooms.
+
+## Improvements over the mockups
+
+- **A URL per room:** each room has its own address, so rooms can be shared and bookmarked, and
+  the browser's back button moves between them.
+- **OpenStreetMap tiles** replace the watercolor tiles in the mockups. They need no API key, and
+  the attribution stays visible.
 
 ## Requirements
 
