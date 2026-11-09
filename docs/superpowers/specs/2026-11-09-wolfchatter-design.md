@@ -85,9 +85,13 @@ read receipts/typing indicators, CI pipeline (tests run locally), actual deploym
   JS is unavoidable (the Leaflet map controller, scroll-to-bottom, name form). Importmap, no Node build.
   Tailwind via `tailwindcss-rails`.
 - **Map:** Leaflet with standard OpenStreetMap tiles (no API key). Leaflet loaded via importmap.
-- **Real time:** Turbo Streams over Action Cable, backed by **Solid Cable** on Postgres (no Redis).
+- **Real time:** Turbo Streams over Action Cable, backed by **Solid Cable** on Postgres (no Redis), in
+  development as well as production (broadcast jobs run in Solid Queue's processes, so an in-process
+  cable adapter would not reach browsers).
   Streams: one per chatroom (messages, title), one global (new pins).
-- **Background jobs:** **Solid Queue** on Postgres (no Redis) for reverse geocoding.
+- **Background jobs:** **Solid Queue** on Postgres (no Redis) for reverse geocoding. Solid Queue is the
+  Active Job adapter in development as well as production, so `limits_concurrency` (Nominatim ≤ 1 req/s)
+  holds wherever jobs really run; test uses the `:test` adapter.
 - **Geocoding:** Nominatim reverse API, called server-side from the job with an identifying
   User-Agent and timeouts, respecting its 1 req/s usage policy.
 - **State management:** server is the source of truth; the client holds only the Leaflet map state
@@ -119,13 +123,15 @@ read receipts/typing indicators, CI pipeline (tests run locally), actual deploym
 4. **Place names:** reverse-geocoding job, live title update.
 5. **Infra doc:** fly.io staging + production cost table with stated assumptions.
 6. **Self-review:** build the review setup, run it, fix, write report + note.
+7. **README polish:** final `README.md` as the project's front page.
 
 ### Execution rules (decided)
 
 - **Cut order under time pressure:** phases run in order so the repo is always shippable. If time is
-  short, trim from the end of the app phases first (live title updates, then live pin fan-out become
-  "documented, not done" in the README/PRD). **Never cut the self-review (phase 6)** — a full
-  review of a smaller app beats a polished app with no review.
+  short, trim from the end of the app phases first (live title updates, then live pin fan-out, then
+  geocoding entirely become "documented, not done" in the README/PRD). **Never cut the self-review
+  (phase 6) or the README polish (phase 7)** — a full review of a smaller app beats a polished app
+  with no review, and the README is the project's front page.
 - **Human checkpoints — execution stops and waits for the lead developer at:**
   - approval of each phase's detailed plan before it executes;
   - the PRD: AI drafts, the developer edits and signs off;
@@ -133,7 +139,7 @@ read receipts/typing indicators, CI pipeline (tests run locally), actual deploym
     records *their* reasoning (AI may transcribe, not decide).
 - **Git history:** one branch + pull request per phase, merged into `main`. Each PR description links
   its phase plan. First commit on `main`: `.gitignore` (incl. `.mise.local.toml`, machine-local) and
-  this design doc. The GitHub MCP server is unavailable in this session; use the `gh` CLI.
+  this design doc. Use the `gh` CLI for GitHub operations.
 
 ## 6. Self-review design
 
