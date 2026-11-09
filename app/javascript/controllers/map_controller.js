@@ -17,7 +17,9 @@ export default class extends Controller {
   }
 
   connect() {
-    this.pins = new Map()
+    // Turbo moves the permanent element on full visits, which disconnects and
+    // reconnects this controller. The Leaflet map and pins live on the element
+    // so pan/zoom survive; only the icon is rebuilt.
     this.icon = L.icon({
       iconUrl: this.iconUrlValue,
       iconRetinaUrl: this.iconRetinaUrlValue,
@@ -28,11 +30,20 @@ export default class extends Controller {
       tooltipAnchor: [16, -28],
       shadowSize: [41, 41]
     })
-    this.map = L.map(this.mapTarget, { doubleClickZoom: false })
-      .setView(this.centerValue, this.zoomValue)
-    L.tileLayer(this.tileUrlValue, { attribution: this.attributionValue, maxZoom: 19 }).addTo(this.map)
+    if (!this.mapTarget.leafletMap) {
+      const map = L.map(this.mapTarget, { doubleClickZoom: false })
+        .setView(this.centerValue, this.zoomValue)
+      L.tileLayer(this.tileUrlValue, { attribution: this.attributionValue, maxZoom: 19 }).addTo(map)
+      map.on("zoomend", () => { this.element.dataset.mapCurrentZoom = map.getZoom() })
+      this.element.dataset.mapCurrentZoom = map.getZoom()
+      this.mapTarget.leafletMap = map
+      this.mapTarget.pins = new Map()
+    }
+    this.map = this.mapTarget.leafletMap
+    this.pins = this.mapTarget.pins
 
-    // Marker controllers may have connected before this one.
+    // Scan the whole document, not just #markers: the panel's marker copy lives
+    // outside the map container and may have connected before this controller.
     document.querySelectorAll("[data-controller~='marker']").forEach((el) => {
       this.add({
         id: Number(el.dataset.markerIdValue),
@@ -44,20 +55,22 @@ export default class extends Controller {
     })
   }
 
-  disconnect() {
-    this.map?.remove()
-    this.map = null
-  }
-
   register(event) {
     this.add(event.detail)
+  }
+
+  // Leaflet treats string tooltip content as HTML; titles come from outside the app.
+  textNode(text) {
+    const el = document.createElement("span")
+    el.textContent = text
+    return el
   }
 
   add({ id, lat, lng, title, url }) {
     if (!this.map || this.pins.has(id)) return
 
     const pin = L.marker([lat, lng], { icon: this.icon, title, alt: title })
-      .bindTooltip(title)
+      .bindTooltip(this.textNode(title))
       .on("click", () => Turbo.visit(url, { frame: "chatroom_panel", action: "advance" }))
       .addTo(this.map)
     this.pins.set(id, pin)

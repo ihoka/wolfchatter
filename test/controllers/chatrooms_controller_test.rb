@@ -32,6 +32,11 @@ class ChatroomsControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame#chatroom_panel"
   end
 
+  test "map starts centred on Europe at zoom 5" do
+    get root_path
+    assert_select "#map_container[data-map-zoom-value='5'][data-map-center-value='[48.0, 15.0]']"
+  end
+
   test "show renders the full page with the room open" do
     get chatroom_path(chatrooms(:cluj))
     assert_response :success
