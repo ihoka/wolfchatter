@@ -22,8 +22,13 @@ class RoomsTest < ApplicationSystemTestCase
 
   test "back returns to the previous room" do
     visit chatroom_path(chatrooms(:cluj))
+    # Going back before Turbo finishes the frame visit (turbo:load) lets the late visit
+    # overwrite the restoration, so wait for it to settle first.
+    page.execute_script("addEventListener('turbo:load', () => document.documentElement.setAttribute('data-visit-settled', ''))")
     find(".leaflet-marker-icon[title='Rome, Italy']").click
     assert_selector "turbo-frame#chatroom_panel h2", text: "Rome, Italy"
+    assert_current_path chatroom_path(chatrooms(:rome))
+    assert_selector "html[data-visit-settled]", visible: :all
     page.go_back
     assert_selector "turbo-frame#chatroom_panel h2", text: "Chatroom #{chatrooms(:cluj).id}"
     assert_selector ".leaflet-marker-icon", count: Chatroom.count

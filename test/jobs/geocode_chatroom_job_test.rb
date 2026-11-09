@@ -21,10 +21,6 @@ class GeocodeChatroomJobTest < ActiveJob::TestCase
     assert_not_requested :get, /nominatim/
   end
 
-  test "place names longer than 120 characters are invalid" do
-    assert_not chatrooms(:cluj).tap { _1.place_name = "a" * 121 }.valid?
-  end
-
   test "creating a room enqueues the job" do
     assert_enqueued_with(job: GeocodeChatroomJob) { Chatroom.create!(latitude: 1, longitude: 2) }
   end

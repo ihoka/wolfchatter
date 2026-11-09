@@ -9,8 +9,10 @@ class Chatroom < ApplicationRecord
   end
 
   after_update_commit if: :saved_change_to_place_name? do
-    broadcast_replace_to self, target: ActionView::RecordIdentifier.dom_id(self, :title), partial: "chatrooms/title", locals: { chatroom: self }
-    # Replaces the #markers element only; the panel's copy has its own id and the map dedupes by room id.
+    broadcast_replace_to self, target: ActionView::RecordIdentifier.dom_id(self, :title),
+                               partial: "chatrooms/title", locals: { chatroom: self }
+    # Replaces this room's element inside #markers. The panel's copy (panel_marker) is not replaced;
+    # the map re-titles the existing pin.
     broadcast_replace_to "chatrooms", target: ActionView::RecordIdentifier.dom_id(self, :marker),
                                       partial: "chatrooms/marker", locals: { chatroom: self }
   end

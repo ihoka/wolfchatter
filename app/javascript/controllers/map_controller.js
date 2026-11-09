@@ -3,7 +3,8 @@ import { Turbo } from "@hotwired/turbo-rails"
 import * as L from "leaflet"
 
 // Owns the Leaflet map. Pins live for the page's lifetime: they are added once
-// per room id and never removed when a marker element disconnects.
+// per room id and never removed when a marker element disconnects, and re-titled
+// when a marker element arrives with a new title.
 export default class extends Controller {
   static targets = ["map"]
   static values = {

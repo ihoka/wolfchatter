@@ -42,6 +42,8 @@ class ReverseGeocoderTest < ActiveSupport::TestCase
 
   test "truncates very long names to 120 characters" do
     stub_nominatim(body: { address: {}, display_name: "a" * 300 })
-    assert_equal 120, ReverseGeocoder.new.place_name(1, 1).length
+    name = ReverseGeocoder.new.place_name(1, 1)
+    assert_equal 120, name.length
+    assert name.end_with?("…")
   end
 end

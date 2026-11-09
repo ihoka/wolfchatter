@@ -18,7 +18,7 @@ class ReverseGeocoder
 
   def place_name(latitude, longitude)
     data = fetch(latitude, longitude)
-    format_name(data)&.truncate(MAX_LENGTH)
+    format_name(data)&.truncate(MAX_LENGTH, omission: "…")
   rescue *NETWORK_ERRORS => e
     Rails.logger.warn("ReverseGeocoder failed: #{e.class}: #{e.message}")
     nil

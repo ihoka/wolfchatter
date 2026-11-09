@@ -44,4 +44,15 @@ class ChatroomTest < ActiveSupport::TestCase
       assert_turbo_stream_broadcasts("chatrooms", count: 1) { room.update!(place_name: "Cluj-Napoca, Romania") }
     end
   end
+
+  test "updating other attributes broadcasts nothing" do
+    room = chatrooms(:cluj)
+    assert_no_turbo_stream_broadcasts(room) do
+      assert_no_turbo_stream_broadcasts("chatrooms") { room.update!(latitude: 10) }
+    end
+  end
+
+  test "place names longer than 120 characters are invalid" do
+    assert_not chatrooms(:cluj).tap { _1.place_name = "a" * 121 }.valid?
+  end
 end
