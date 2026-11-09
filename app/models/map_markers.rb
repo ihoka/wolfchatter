@@ -64,10 +64,18 @@ class MapMarkers
     ((east_span / size).ceil + 1) * (((@north - @south) / size).ceil + 1)
   end
 
+  def cell_x_expr
+    Arel::Nodes::NamedFunction.new("FLOOR", [ Chatroom.arel_table[:longitude] / Arel::Nodes.build_quoted(cell_size) ])
+  end
+
+  def cell_y_expr
+    Arel::Nodes::NamedFunction.new("FLOOR", [ Chatroom.arel_table[:latitude] / Arel::Nodes.build_quoted(cell_size) ])
+  end
+
   def build_clusters
     rows = in_box
-           .group(Arel.sql("FLOOR(longitude / #{cell_size})"), Arel.sql("FLOOR(latitude / #{cell_size})"))
-           .pluck(Arel.sql("FLOOR(longitude / #{cell_size})"), Arel.sql("FLOOR(latitude / #{cell_size})"),
+           .group(cell_x_expr, cell_y_expr)
+           .pluck(cell_x_expr, cell_y_expr,
                   Arel.sql("COUNT(*)"), Arel.sql("AVG(latitude)"), Arel.sql("AVG(longitude)"),
                   Arel.sql("MIN(id)"))
     lone_ids = rows.filter_map { |_, _, count, _, _, id| id if count == 1 }
