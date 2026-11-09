@@ -1,6 +1,6 @@
 # Viewport pins and clustering: design
 
-Date: 2026-11-09 · Status: proposed · Resolves review finding **Q1** ([`docs/review/notes.md`](../../review/notes.md))
+Date: 2026-11-09 · Status: implemented (phase 8) · Resolves review finding **Q1** ([`docs/review/notes.md`](../../review/notes.md))
 
 ## Why
 

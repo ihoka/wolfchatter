@@ -90,8 +90,8 @@ flowchart TD
   controller when a set arrives, and the map swaps its Leaflet layer without a gap.
 - **Global `chatrooms` stream.** Every map page subscribes. Creating a room appends a hidden marker
   element to `#live_markers` (the last 20 are kept). In a pin view the `map` controller adds the
-  pin if it is in view; in a clustered view it increments the count of that room's cell, or adds a
-  lone pin. Pins are deduped by room id.
+  pin if it is in view; in a clustered view it increments the count of that room's cell, turns a
+  lone pin in that cell into a cluster of 2, or adds a lone pin if the cell is empty. Pins are deduped by room id.
 - **Per-room stream.** The open panel subscribes with `turbo_stream_from @chatroom`. A new message
   appends the same `messages/message` partial the page renders.
 - **Place names.** Creating a room enqueues `GeocodeChatroomJob`. When it stores a `place_name`,
