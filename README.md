@@ -4,7 +4,7 @@ Wolfchatter is a real-time chat app on a map. Click anywhere to drop a pin; each
 anyone can join, and new messages and pins appear live for everyone watching.
 
 Built on Rails 8.1, Hotwire, PostgreSQL, Solid Queue and Solid Cable (no Redis, no Node build).
-Rooms, messages and live updates work. Place names for rooms come next.
+Rooms, messages, live updates and place names work.
 The full requirements are in the [PRD](docs/prd.md).
 
 ## Using Wolfchatter
@@ -19,16 +19,23 @@ The full requirements are in the [PRD](docs/prd.md).
   Then type a message and press Submit.
 - **Live:** new messages in the open room, and new pins anywhere on the map, appear for everyone
   without reloading.
+- **Place names:** a new room starts as "Chatroom 12". A moment later it is renamed after the place
+  you clicked, for example "Cluj-Napoca, Romania", for everyone watching. A room in the open sea
+  keeps its number.
 
 ## Improvements over the mockups
 
 - **Name entered once:** the mockups ask for your name with every message. Here you enter it once
   and it's remembered in a signed cookie.
-
+- **Place-name titles:** rooms are named after their location instead of "Chatroom 1, 2, 3".
 - **A URL per room:** each room has its own address, so rooms can be shared and bookmarked, and
   the browser's back button moves between them.
 - **OpenStreetMap tiles** replace the watercolor tiles in the mockups. They need no API key, and
   the attribution stays visible.
+
+Place names come from [Nominatim](https://nominatim.org/) (© OpenStreetMap contributors). Lookups
+happen server-side in a background job. The job sends an identifying User-Agent and is throttled to
+one request per second, as Nominatim's usage policy requires.
 
 ## Known limitations
 
