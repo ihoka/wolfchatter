@@ -1,0 +1,18 @@
+<div id="map_container" data-turbo-permanent>
+  <div id="map" class="fixed inset-0 z-0"></div>
+  <div id="markers" hidden>
+    <%= render partial: "chatrooms/marker", collection: chatrooms, as: :chatroom %>
+  </div>
+  <%= form_with url: chatrooms_path, id: "new_chatroom_form", hidden: true, data: { turbo_frame: "chatroom_panel" } do |form| %>
+    <%= form.hidden_field "chatroom[latitude]", id: "chatroom_latitude" %>
+    <%= form.hidden_field "chatroom[longitude]", id: "chatroom_longitude" %>
+  <% end %>
+</div>
+
+<turbo-frame id="chatroom_panel" data-turbo-action="advance" class="fixed top-4 right-4 z-[1000] w-96 max-w-[calc(100vw-2rem)] bg-white rounded shadow">
+  <% if chatroom %>
+    <%= render "chatrooms/panel", chatroom: chatroom %>
+  <% else %>
+    <%= render "chatrooms/empty_panel" %>
+  <% end %>
+</turbo-frame>
