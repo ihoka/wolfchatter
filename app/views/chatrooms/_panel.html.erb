@@ -6,5 +6,8 @@
   <%= render partial: "messages/message", collection: chatroom.recent_messages, as: :message %>
 </div>
 <%= render "chatrooms/compose", chatroom: chatroom %>
+<%# The panel's marker copy registers the pin for a room the viewer just opened or created, even if
+    the #markers broadcast was missed. The map dedupes by room id; the copy has its own element id
+    (panel_marker) to keep ids unique. %>
 <%= render "chatrooms/marker", chatroom: chatroom, id_suffix: :panel_marker %>
 <%= turbo_stream_from chatroom %>

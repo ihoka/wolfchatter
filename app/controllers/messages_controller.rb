@@ -14,7 +14,7 @@ class MessagesController < ApplicationController
             turbo_stream.append(helpers.dom_id(@chatroom, :messages), partial: "messages/message",
                                 locals: { message: @message }),
             turbo_stream.replace(helpers.dom_id(@chatroom, :message_form), partial: "messages/form",
-                                 locals: { chatroom: @chatroom })
+                                 locals: { chatroom: @chatroom, autofocus: true })
           ]
         else
           render turbo_stream: turbo_stream.replace(helpers.dom_id(@chatroom, :message_form),

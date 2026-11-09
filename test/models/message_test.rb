@@ -31,6 +31,14 @@ class MessageTest < ActiveSupport::TestCase
     assert_equal %w[m1 m2], room.recent_messages(2).map(&:body)
   end
 
+  test "recent_messages breaks created_at ties by id" do
+    room = chatrooms(:rome)
+    at = Time.current
+    first = room.messages.create!(author_name: "A", body: "one", created_at: at)
+    second = room.messages.create!(author_name: "A", body: "two", created_at: at)
+    assert_equal [ first.id, second.id ], room.recent_messages.map(&:id)
+  end
+
   test "creating a message broadcasts it to the room" do
     room = chatrooms(:cluj)
     assert_turbo_stream_broadcasts(room, count: 1) do
