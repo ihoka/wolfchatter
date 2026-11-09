@@ -1,0 +1,8 @@
+<%# locals: (message:) %>
+<article id="<%= dom_id(message) %>" class="border-b px-4 py-2">
+  <strong><%= message.author_name %></strong>
+  <p class="whitespace-pre-line break-words"><%= message.body %></p>
+  <p class="text-right text-xs text-gray-600">
+    <time datetime="<%= message.created_at.utc.iso8601 %>"><%= message.created_at.utc.strftime("%d/%m/%Y %H:%M") %> UTC</time>
+  </p>
+</article>

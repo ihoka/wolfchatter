@@ -4,7 +4,7 @@ Wolfchatter is a real-time chat app on a map. Click anywhere to drop a pin; each
 anyone can join, and new messages and pins appear live for everyone watching.
 
 Built on Rails 8.1, Hotwire, PostgreSQL, Solid Queue and Solid Cable (no Redis, no Node build).
-This is a work in progress: rooms on the map work; messages and live updates come next.
+Rooms, messages and live updates work. Place names for rooms come next.
 The full requirements are in the [PRD](docs/prd.md).
 
 ## Using Wolfchatter
@@ -15,13 +15,32 @@ The full requirements are in the [PRD](docs/prd.md).
   `/chatrooms/:id`, so links, refresh and back/forward all work.
 - **Zoom:** use the +/− buttons or the scroll wheel. Double-click zoom is off, so a double-click
   can't create two rooms.
+- **Chat:** enter your name once. It's remembered in a cookie, and you can change it at any time.
+  Then type a message and press Submit.
+- **Live:** new messages in the open room, and new pins anywhere on the map, appear for everyone
+  without reloading.
 
 ## Improvements over the mockups
+
+- **Name entered once:** the mockups ask for your name with every message. Here you enter it once
+  and it's remembered in a signed cookie.
 
 - **A URL per room:** each room has its own address, so rooms can be shared and bookmarked, and
   the browser's back button moves between them.
 - **OpenStreetMap tiles** replace the watercolor tiles in the mockups. They need no API key, and
   the attribution stays visible.
+
+## Known limitations
+
+- **Names work on the honor system.** There are no accounts, so anyone can pick any name.
+- **History:** the panel shows the 100 most recent messages in a room.
+- **Timestamps are shown in UTC.**
+- **Every map click creates a room,** including stray ones. This matches the mockups.
+- **Missed pins after a dropped connection:** pins created while your live connection was down
+  show up only after a full reload, because the map keeps its pins across in-app navigation.
+- **Very fast Back:** pressing Back within milliseconds of clicking a pin can leave the panel
+  showing the room you just opened. The next navigation corrects it. This comes from how Turbo
+  finishes a frame visit.
 
 ## Requirements
 

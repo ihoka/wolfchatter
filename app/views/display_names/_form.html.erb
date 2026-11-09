@@ -1,0 +1,9 @@
+<%= form_with model: display_name, scope: :display_name, url: display_name_path, method: :patch, class: "space-y-2" do |form| %>
+  <%= hidden_field_tag :chatroom_id, chatroom.id %>
+  <% display_name.errors.full_messages.each do |message| %>
+    <p role="alert" class="text-sm text-red-700"><%= message %></p>
+  <% end %>
+  <%= form.text_field :name, placeholder: "write your user name here", maxlength: DisplayName::MAX_LENGTH,
+        autocomplete: "nickname", aria: { label: "write your user name here" }, class: "w-full rounded border px-2 py-1" %>
+  <%= form.submit "Save name", class: "rounded bg-blue-700 px-3 py-1 text-white" %>
+<% end %>

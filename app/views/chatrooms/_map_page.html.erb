@@ -1,4 +1,9 @@
 <%# Attribution is a static literal: Leaflet renders it as HTML, so never interpolate user data. %>
+<%# The panel always holds live content, and frame visits keep this page's head, so
+    every map page opts out of Turbo's snapshot cache: back/forward re-fetches. %>
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache">
+<% end %>
 <div id="map_container" data-turbo-permanent
      data-controller="map"
      data-action="marker:connect@window->map#register"
@@ -10,6 +15,7 @@
      data-map-icon-retina-url-value="<%= image_path("leaflet/marker-icon-2x.png") %>"
      data-map-shadow-url-value="<%= image_path("leaflet/marker-shadow.png") %>">
   <div id="map" role="region" aria-label="Chat map" class="fixed inset-0 z-0" data-map-target="map"></div>
+  <%= turbo_stream_from "chatrooms" %>
   <div id="markers" hidden>
     <%= render partial: "chatrooms/marker", collection: chatrooms, as: :chatroom %>
   </div>
