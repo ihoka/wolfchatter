@@ -57,4 +57,8 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+  # N+1 detection (raises in tests); pg_query lets it parse SQL
+  gem "prosopite", "~> 2.5"
+  gem "pg_query", "~> 6.2"
+  gem "simplecov", "~> 1.3", require: false
 end

@@ -4,6 +4,12 @@
 # and recreated between test runs. Don't rely on the data there!
 
 Rails.application.configure do
+  # Prosopite: raise on N+1 queries. The middleware covers requests served in
+  # Puma's thread (system tests); test_helper covers the test thread.
+  require "prosopite/middleware/rack"
+  config.middleware.use Prosopite::Middleware::Rack
+  config.after_initialize { Prosopite.raise = true }
+
   # Settings specified here will take precedence over those in config/application.rb.
 
   # While tests run files are not watched, reloading is not necessary.
