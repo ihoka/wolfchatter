@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_09_111519) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_09_143441) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -20,6 +20,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_111519) do
     t.string "place_name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["latitude", "longitude"], name: "index_chatrooms_on_latitude_and_longitude"
   end
 
   create_table "messages", force: :cascade do |t|

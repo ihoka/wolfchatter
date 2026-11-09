@@ -18,8 +18,12 @@ in the [PRD](docs/prd.md).
   can't create two rooms.
 - **Chat:** enter your name once. It's remembered in a cookie, and you can change it at any time.
   Then type a message and press Submit.
-- **Live:** new messages in the open room, and new pins anywhere on the map, appear for everyone
-  without reloading.
+- **Live:** new messages in the open room, and new pins in the part of the map you are looking
+  at, appear for everyone without reloading.
+- **Pins for what you see:** the map loads only the pins in view. When more than 300 rooms are in
+  view, they are grouped into count badges. Click a badge to zoom in, and the badges split into
+  smaller groups and finally into ordinary pins. In a grouped view, a new room raises the count of
+  its group.
 - **Place names:** a new room starts as "Chatroom 12". A moment later it is renamed after the place
   you clicked, for example "Cluj-Napoca, Romania", for everyone watching. A room in the open sea
   keeps its number.
@@ -45,10 +49,11 @@ place names (see [Run](#run)).
 ```mermaid
 flowchart TD
   subgraph Browser
-    Stim["Stimulus: map + marker controllers (Leaflet)"]
+    Stim["Stimulus: map + marker + marker_set controllers (Leaflet)"]
     Frame["Turbo frame: chat panel"]
     Subs["turbo_stream_from: 'chatrooms' + open room"]
   end
+  Markers["MarkersController + MapMarkers: pins, or clusters when over 300 rooms in view"]
   Ctrl["Rails controllers"]
   Models["Models: broadcast in after_*_commit"]
   PG[("PostgreSQL: app data, Solid Queue, Solid Cable")]
@@ -58,6 +63,9 @@ flowchart TD
   Cable["Solid Cable"]
 
   Stim -- "map click: POST /chatrooms<br/>pin click: GET /chatrooms/:id" --> Ctrl
+  Stim -- "after load and each moveend: GET /chatrooms/markers (viewport)" --> Markers
+  Markers -- "Turbo Stream: update #markers" --> Stim
+  Markers -- "at most 3 queries; clusters group every room in view" --> PG
   Ctrl -- "panel HTML" --> Frame
   Ctrl --> Models --> PG
   Models -- "enqueue on create" --> Queue --> Job
@@ -66,16 +74,24 @@ flowchart TD
   Models -- "broadcast pin, message, title" --> Cable
   Cable -- "Turbo Streams over Action Cable" --> Subs
   Subs -- "messages, title" --> Frame
-  Subs -- "new and renamed pins" --> Stim
+  Subs -- "new rooms into #live_markers, renamed pins" --> Stim
 ```
 
-- **Two tables.** `chatrooms` (latitude, longitude, nullable `place_name`) and `messages`
-  (`chatroom_id`, `author_name`, `body`), indexed on `(chatroom_id, created_at)`. A room's title is
+- **Two tables.** `chatrooms` (latitude, longitude, nullable `place_name`, indexed on
+  `(latitude, longitude)` for the viewport query) and `messages` (`chatroom_id`, `author_name`,
+  `body`), indexed on `(chatroom_id, created_at)`. A room's title is
   `place_name.presence || "Chatroom #{id}"`. Columns and limits are in the
   [PRD data model](docs/prd.md#data-model).
+- **Viewport pins.** The map page renders no pins. After load and on each pan or zoom (debounced
+  250 ms, stale requests aborted), the `map` controller calls `GET /chatrooms/markers` with the
+  bounding box and zoom. The reply is a Turbo Stream `update` of `#markers` holding marker
+  elements (data attributes only): pins when 300 or fewer rooms are in view, otherwise cluster
+  elements from `MapMarkers`, a grid query. The `marker_set` Stimulus controller tells the `map`
+  controller when a set arrives, and the map swaps its Leaflet layer without a gap.
 - **Global `chatrooms` stream.** Every map page subscribes. Creating a room appends a hidden marker
-  element (data attributes only) to `#markers`; the `marker` Stimulus controller hands it to the
-  `map` controller, which adds the Leaflet pin and dedupes by room id.
+  element to `#live_markers` (the last 20 are kept). In a pin view the `map` controller adds the
+  pin if it is in view; in a clustered view it increments the count of that room's cell, turns a
+  lone pin in that cell into a cluster of 2, or adds a lone pin if the cell is empty. Pins are deduped by room id.
 - **Per-room stream.** The open panel subscribes with `turbo_stream_from @chatroom`. A new message
   appends the same `messages/message` partial the page renders.
 - **Place names.** Creating a room enqueues `GeocodeChatroomJob`. When it stores a `place_name`,
@@ -88,8 +104,10 @@ flowchart TD
 
 | Decision | Why | Trade-off |
 |---|---|---|
-| Hotwire over an SPA | Turbo frames give navigation and a URL per room; Turbo Streams give live updates. Three small Stimulus controllers cover the map, markers and scrolling. No build step. | Leaflet still needs careful client code: the map is `data-turbo-permanent` and must survive Turbo visits. |
-| Pins as marker elements, not JSON | Initial pins and live pins use one partial and one code path. Broadcasts are plain Turbo Stream appends, and there is no client-side store to keep in sync. | Every full page load renders every pin. Fine to a few thousand rooms ([Q1](docs/review/report.md)). |
+| Hotwire over an SPA | Turbo frames give navigation and a URL per room; Turbo Streams give live updates. Four small Stimulus controllers cover the map, markers, marker sets and scrolling. No build step. | Leaflet still needs careful client code: the map is `data-turbo-permanent` and must survive Turbo visits. |
+| Pins as marker elements, not JSON | Fetched pins, clusters and live pins are all server-rendered marker elements built from one partial family, delivered as Turbo Streams. There is no JSON endpoint and no client-side store to keep in sync. | Elements carry data attributes the browser must read back, which is more markup than JSON. The page no longer renders every pin: it fetches only the visible area ([Q1](docs/review/notes.md), fixed). |
+| Server-side clustering, not Leaflet.markercluster | The plugin groups markers in the browser, so the server would still send every room to every visitor. That fixes the clutter but not the load. Grouping on the server in one grid query keeps the reply bounded at any room count and needs no new JavaScript dependency. | Clusters show counts only, not place names. Badges don't animate or split smoothly. See [known limitations](#known-limitations). |
+| Pins or clusters chosen by count, not zoom | A fixed zoom threshold would cluster small maps for no reason. With 300 or fewer rooms in view the map shows ordinary pins at every zoom, exactly as before. | A dense area clusters even at high zoom until you zoom in far enough to hold 300 or fewer. |
 | Synchronous broadcasts | `broadcast_*_to` in `after_create_commit` is a cheap Solid Cable insert. It needs no job process, and system tests see it immediately. | Broadcast rendering happens inside the request. solid_cable writes in a background thread, so a cable outage is logged rather than failing the post ([T1, refuted](docs/review/report.md#checked-and-clean)). |
 | Solid Queue and Solid Cable on Postgres, no Redis | One database server to run, back up and pay for. Solid Queue runs inside Puma. | Postgres carries the job and cable load. Fine at the expected scale ([infrastructure](docs/infrastructure.md)). |
 | Signed-cookie display name, honor system | No accounts were in scope. Name once, reused everywhere; the signature stops tampering with someone else's cookie. | Anyone can pick any name. Names are not unique or authenticated. |
@@ -118,10 +136,19 @@ one request per second, as Nominatim's usage policy requires.
 - **Timestamps are shown in UTC.**
 - **Every map click creates a room,** including stray ones. This matches the mockups.
 - **No edit, delete or moderation.** Rate limits slow abuse but can't undo it.
-- **All pins load on every page.** Comfortable up to a few thousand rooms; beyond that it needs
-  viewport-bounded loading or clustering.
+- **Cluster counts can drift by one.** A live room can be counted twice, or the creator's own
+  cluster might not be incremented, until the next pan or zoom reloads the exact counts.
+- **Zoomed-out requests read every room in view.** A reply never holds more than 300 pins or
+  clusters, but the cluster query groups every room in the box, so at world zoom its cost grows
+  with the total number of rooms (7.6 ms at 10,000 rooms in the phase 8 benchmark). The markers
+  endpoint has no rate limit. Past roughly 100,000 rooms we would pre-aggregate the grid and cache
+  it per zoom level.
+- **Cluster badges can overlap.** Neighbouring badges can touch at dense zooms. The grid is fixed
+  per zoom level and does not merge neighbours.
+- **Cells look taller near the poles.** The grid is plain degrees of latitude and longitude, so on
+  a Mercator map a cell is visually taller at high latitudes.
 - **Missed pins after a dropped connection:** pins created while your live connection was down
-  show up only after a full reload, because the map keeps its pins across in-app navigation.
+  show up after the next pan or zoom, which refetches the view.
 - **The creator can miss their room's live title.** If the place name arrives before the new
   panel's stream subscribes, the creator keeps "Chatroom 12" until they reopen the room. The pin
   still updates. The window is small.

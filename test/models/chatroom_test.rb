@@ -32,16 +32,28 @@ class ChatroomTest < ActiveSupport::TestCase
     assert_equal "Chatroom #{chatrooms(:rome).id}", chatrooms(:rome).tap { _1.place_name = " " }.title
   end
 
-  test "creating a room broadcasts its marker" do
-    assert_turbo_stream_broadcasts("chatrooms", count: 1) do
-      Chatroom.create!(latitude: 1, longitude: 2)
-    end
+  test "creating a room broadcasts its marker to the live markers" do
+    streams = capture_turbo_stream_broadcasts("chatrooms") { Chatroom.create!(latitude: 1, longitude: 2) }
+    assert_equal 1, streams.size
+    assert_equal "append", streams.first["action"]
+    assert_equal "live_markers", streams.first["target"]
+    marker = streams.first.at_css("[data-controller=marker]")
+    assert_match(/\Alive_marker_chatroom_\d+\z/, marker["id"])
+    assert_equal "live", marker["data-marker-role-value"]
   end
 
-  test "a new place name broadcasts the title and the marker" do
+  test "a new place name broadcasts the title and both marker replaces" do
     room = chatrooms(:cluj)
     assert_turbo_stream_broadcasts(room, count: 1) do
-      assert_turbo_stream_broadcasts("chatrooms", count: 1) { room.update!(place_name: "Cluj-Napoca, Romania") }
+      streams = capture_turbo_stream_broadcasts("chatrooms") { room.update!(place_name: "Cluj-Napoca, Romania") }
+      assert_equal 2, streams.size
+      assert_equal %w[replace replace], streams.map { _1["action"] }
+      ids = [ ActionView::RecordIdentifier.dom_id(room, :marker), ActionView::RecordIdentifier.dom_id(room, :live_marker) ]
+      assert_equal ids, streams.map { _1["target"] }
+      streams.each do |stream|
+        assert_equal "set", stream.at_css("[data-controller=marker]")["data-marker-role-value"]
+      end
+      assert_equal ids, streams.map { _1.at_css("[data-controller=marker]")["id"] }
     end
   end
 

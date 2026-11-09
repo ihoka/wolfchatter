@@ -29,9 +29,10 @@ Available once the Rails app is generated (phase 1).
 - Declare broadcasts in models: synchronous `broadcast_*_to` in `after_create_commit` is the
   default. It's a cheap Solid Cable insert, needs no job process, and system tests see it.
   Broadcasts render from partials shared with the normal views, using only record attributes.
-- Live map pins: initial and live pins are both rendered as marker elements (data attributes) in
-  `#markers`; no JSON endpoint or JSON blob, no client-side store. A Stimulus controller manages
-  them, deduped by room id.
+- Live map pins: pins and clusters are marker elements (data attributes) fetched per viewport as a
+  Turbo Stream into `#markers`; live pins arrive in `#live_markers`. Marker roles are `live`,
+  `panel` and `set`. No JSON endpoint or JSON blob, no client-side store. A Stimulus controller
+  manages them, deduped by room id.
 - Validate at the model: display name stripped, required, max 40; message body max 1000.
   Limits are defined in the PRD; change them there first.
 - Strong params everywhere. Never render user input with `html_safe` or `raw`.

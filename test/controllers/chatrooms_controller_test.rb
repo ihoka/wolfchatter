@@ -10,10 +10,18 @@ class ChatroomsControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame#chatroom_panel", text: /Click on the map to start a chat/
   end
 
-  test "index renders a marker per room" do
+  test "index renders no room markers" do
     get root_path
-    assert_select "#markers [data-controller=marker]", count: Chatroom.count
-    assert_select "##{dom_id(chatrooms(:rome), :marker)}[data-marker-title-value=?]", "Rome, Italy"
+    assert_select "#markers"
+    assert_select "#markers [data-controller=marker]", count: 0
+    assert_select "#live_markers"
+    assert_select "#map_container[data-map-markers-url-value=?]", chatroom_markers_path
+  end
+
+  test "show centres the map on its room" do
+    get chatroom_path(chatrooms(:cluj))
+    assert_select "#map_container[data-map-center-value=?]", "[46.770439, 23.591423]"
+    assert_select "[data-marker-role-value=panel]", count: 1
   end
 
   test "create with valid coordinates redirects to the room" do

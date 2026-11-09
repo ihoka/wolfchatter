@@ -27,6 +27,7 @@ per task, review gate between tasks, TDD, small single-purpose commits.
 | 5 | Infra doc | `docs/infrastructure.md`: fly.io staging + production table with assumptions | Doc reviewed by lead developer |
 | 6 | Self-review | `bin/review`, review agents + `/self-review` skill, `docs/review/report.md`, `docs/review/notes.md` | Lead developer has triaged every finding; fixes merged |
 | 7 | README polish | Final `README.md` as the project's front page (see below) | Lead developer reads it top to bottom; a fresh clone runs by following it alone |
+| 8 | Viewport pins | Pins loaded for the visible area only, server-side count clusters when dense, live counts ([plan](phase-8-viewport-pins.md)) | Map page size is constant at 10k rooms; system tests for clusters and live updates green |
 
 ## README (built up across phases, finished in phase 7)
 

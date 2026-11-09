@@ -6,19 +6,19 @@
 <% end %>
 <div id="map_container" data-turbo-permanent
      data-controller="map"
-     data-action="marker:connect@window->map#register"
+     data-action="marker:connect@window->map#register marker-set:load@window->map#load"
      data-map-tile-url-value="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
      data-map-attribution-value="&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
-     data-map-center-value="[48.0, 15.0]"
+     data-map-center-value="<%= chatroom ? "[#{chatroom.latitude}, #{chatroom.longitude}]" : "[48.0, 15.0]" %>"
+     data-map-markers-url-value="<%= chatroom_markers_path %>"
      data-map-zoom-value="5"
      data-map-icon-url-value="<%= image_path("leaflet/marker-icon.png") %>"
      data-map-icon-retina-url-value="<%= image_path("leaflet/marker-icon-2x.png") %>"
      data-map-shadow-url-value="<%= image_path("leaflet/marker-shadow.png") %>">
   <div id="map" role="region" aria-label="Chat map" class="fixed inset-0 z-0" data-map-target="map"></div>
   <%= turbo_stream_from "chatrooms" %>
-  <div id="markers" hidden>
-    <%= render partial: "chatrooms/marker", collection: chatrooms, as: :chatroom %>
-  </div>
+  <div id="markers" hidden></div>
+  <div id="live_markers" hidden></div>
   <%= form_with url: chatrooms_path, id: "new_chatroom_form", hidden: true, data: { turbo_frame: "chatroom_panel" } do |form| %>
     <%= form.hidden_field "chatroom[latitude]", id: "chatroom_latitude" %>
     <%= form.hidden_field "chatroom[longitude]", id: "chatroom_longitude" %>

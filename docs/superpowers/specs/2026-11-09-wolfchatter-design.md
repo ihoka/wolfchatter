@@ -46,7 +46,7 @@ white bordered panel floating top-right.
 Our deviations, all to be listed in the README as improvements: OSM tiles instead of watercolor
 (no API key), place-name titles, name entered once instead of a field per message, URL per room.
 
-1. **Empty state.** Map loads showing all existing pins. Panel reads "Click on the map to start a chat".
+1. **Empty state.** Map loads showing the pins in view, grouped into count clusters when dense ([viewport pins design](2026-11-09-viewport-pins-design.md)). Panel reads "Click on the map to start a chat".
 2. **Create a room.** Clicking empty map space immediately creates a chatroom at that lat/lng
    (no confirm step — matches the mockup; accidental rooms are an accepted, documented trade-off).
    A pin appears and the panel switches to the new room.
@@ -68,8 +68,8 @@ Our deviations, all to be listed in the README as improvements: OSM tiles instea
 
 ### Non-goals (deliberately not built — listed in the PRD as such)
 
-Accounts/authentication, editing or deleting rooms/messages, moderation, pin clustering, search,
-read receipts/typing indicators, CI pipeline (tests run locally), actual deployment.
+Accounts/authentication, editing or deleting rooms/messages, moderation, search,
+read receipts/typing indicators, CI pipeline (tests run locally), actual deployment. Pin clustering was a non-goal here and was added later in the [viewport pins design](2026-11-09-viewport-pins-design.md).
 
 ### Anti-goals (would make this a failure even if it "works")
 

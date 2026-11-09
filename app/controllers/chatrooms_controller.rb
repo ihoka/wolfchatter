@@ -2,12 +2,10 @@ class ChatroomsController < ApplicationController
   rate_limit to: 10, within: 1.minute, only: :create, with: :render_rate_limited
 
   def index
-    @chatrooms = Chatroom.order(:id)
   end
 
   def show
     @chatroom = Chatroom.find(params[:id])
-    @chatrooms = Chatroom.order(:id) unless turbo_frame_request?
   end
 
   def create

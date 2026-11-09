@@ -41,4 +41,67 @@ class LiveUpdatesTest < ApplicationSystemTestCase
     page.go_back
     within("##{dom_id(cluj, :messages)}") { assert_text "while you were away" }
   end
+
+  test "off-screen new room does not appear in pins mode" do
+    visit root_path
+    assert_selector "turbo-cable-stream-source[connected]", visible: :all
+    assert_selector ".leaflet-marker-icon", count: 2
+    bounds = map_script("map.getBounds()")
+    lat = (bounds["_southWest"]["lat"] + bounds["_northEast"]["lat"]) / 2
+    outside = Chatroom.create!(latitude: lat, longitude: bounds["_southWest"]["lng"] - 10)
+    assert_selector "##{dom_id(outside, :live_marker)}", visible: :all
+    assert_selector ".leaflet-marker-icon", count: 2
+
+    center = map_script("map.getCenter()")
+    Chatroom.create!(latitude: center["lat"], longitude: center["lng"])
+    assert_selector ".leaflet-marker-icon", count: 3
+  end
+
+  test "new room raises a cluster count live" do
+    seed_dense_area
+    visit root_path
+    assert_selector "turbo-cable-stream-source[connected]", visible: :all
+    # The cell size the server used for this view (it may coarsen the grid).
+    size = Float(find("#marker_set[data-marker-set-mode-value=clusters]", visible: :all)["data-marker-set-cell-size-value"])
+    lat, lng = 45.05, 10.05
+    cell_lat = (lat / size).floor * size
+    cell_lng = (lng / size).floor * size
+    count = Chatroom.where(latitude: cell_lat...(cell_lat + size), longitude: cell_lng...(cell_lng + size)).count
+    assert_selector ".map-cluster", exact_text: count.to_s
+    assert_no_selector ".map-cluster", exact_text: (count + 1).to_s
+
+    Chatroom.create!(latitude: lat, longitude: lng)
+    assert_selector ".map-cluster", exact_text: (count + 1).to_s
+    assert_no_selector ".map-cluster", exact_text: count.to_s
+  end
+
+  test "room created during a fetch survives the swap" do
+    visit root_path
+    assert_selector "turbo-cable-stream-source[connected]", visible: :all
+    assert_selector ".leaflet-marker-icon", count: 2
+    # Hold the next markers reply in the browser (after the server has answered, so the reply
+    # cannot contain the new room) until the test releases it.
+    page.execute_script(<<~JS)
+      const realFetch = window.fetch
+      window.fetch = async (...args) => {
+        const response = await realFetch(...args)
+        if (!String(args[0]).includes("/chatrooms/markers")) return response
+        window.fetch = realFetch
+        document.documentElement.dataset.markersHeld = ""
+        await new Promise((resolve) => { window.releaseMarkers = resolve })
+        return response
+      }
+    JS
+    mark_marker_set_stale
+    page.execute_script("document.getElementById('map').leafletMap.panBy([60, 40])")
+    assert_selector "html[data-markers-held]", visible: :all
+
+    center = map_script("map.getCenter()")
+    room = Chatroom.create!(latitude: center["lat"], longitude: center["lng"])
+    assert_selector ".leaflet-marker-icon[title='#{room.title}']"
+    page.execute_script("window.releaseMarkers()")
+    assert_marker_set_refreshed
+    assert_selector ".leaflet-marker-icon[title='#{room.title}']"
+    assert_selector ".leaflet-marker-icon", count: 3
+  end
 end
