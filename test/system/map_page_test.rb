@@ -61,4 +61,13 @@ class MapPageTest < ApplicationSystemTestCase
     assert_selector ".leaflet-marker-icon", count: Chatroom.count
     assert_equal 6, page.evaluate_script("document.getElementById('map').leafletMap.getZoom()")
   end
+
+  test "deep link centres on its room" do
+    rome = chatrooms(:rome)
+    visit chatroom_path(rome)
+    assert_selector "turbo-frame#chatroom_panel h2", text: "Rome, Italy"
+    center = page.evaluate_script("document.getElementById('map').leafletMap.getCenter()")
+    assert_in_delta rome.latitude, center["lat"], 0.01
+    assert_in_delta rome.longitude, center["lng"], 0.01
+  end
 end

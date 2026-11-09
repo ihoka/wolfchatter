@@ -6,7 +6,7 @@
 <% end %>
 <div id="map_container" data-turbo-permanent
      data-controller="map"
-     data-action="marker:connect@window->map#register"
+     data-action="marker:connect@window->map#register marker-set:load@window->map#load"
      data-map-tile-url-value="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
      data-map-attribution-value="&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
      data-map-center-value="<%= chatroom ? "[#{chatroom.latitude}, #{chatroom.longitude}]" : "[48.0, 15.0]" %>"
