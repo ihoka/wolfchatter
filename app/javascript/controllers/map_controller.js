@@ -5,7 +5,7 @@ import * as L from "leaflet"
 // Owns the Leaflet map. Pins live for the page's lifetime: they are added once
 // per room id and never removed when a marker element disconnects.
 export default class extends Controller {
-  static targets = ["map", "form", "latitude", "longitude"]
+  static targets = ["map"]
   static values = {
     tileUrl: String,
     attribution: String,
@@ -39,13 +39,13 @@ export default class extends Controller {
       // over. Resolve the form from the permanent DOM at click time instead; those
       // nodes are the same across moves.
       const container = this.element
-      let lastClickAt = 0
+      let lastClickAt = -Infinity
       map.on("click", (event) => {
+        const form = container.querySelector("#new_chatroom_form")
+        if (!form) return
         // A double-click fires two click events; create only one room.
         if (event.originalEvent.timeStamp - lastClickAt < 300) return
         lastClickAt = event.originalEvent.timeStamp
-        const form = container.querySelector("#new_chatroom_form")
-        if (!form) return
         const { lat, lng } = event.latlng.wrap()
         form.querySelector("[name='chatroom[latitude]']").value = lat.toFixed(6)
         form.querySelector("[name='chatroom[longitude]']").value = lng.toFixed(6)

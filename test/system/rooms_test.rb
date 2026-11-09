@@ -13,8 +13,10 @@ class RoomsTest < ApplicationSystemTestCase
 
   test "clicking a pin switches the panel and the URL" do
     visit chatroom_path(chatrooms(:cluj))
-    find(".leaflet-marker-icon[title='Rome, Italy']").click
-    assert_selector "turbo-frame#chatroom_panel h2", text: "Rome, Italy"
+    assert_no_difference "Chatroom.count" do
+      find(".leaflet-marker-icon[title='Rome, Italy']").click
+      assert_selector "turbo-frame#chatroom_panel h2", text: "Rome, Italy"
+    end
     assert_current_path chatroom_path(chatrooms(:rome))
   end
 
@@ -32,6 +34,8 @@ class RoomsTest < ApplicationSystemTestCase
     assert_difference -> { Chatroom.count }, 1 do
       find("#map").double_click(x: -250, y: 150)
       assert_selector "turbo-frame#chatroom_panel h2", text: /Chatroom \d+/
+      # Let a stray second POST land before assert_difference counts.
+      sleep 0.5
     end
   end
 end
