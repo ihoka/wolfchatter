@@ -66,6 +66,20 @@ class MarkersControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.headers["Cache-Control"], "no-cache"
   end
 
+  # A bug in MapMarkers or the view must surface as an error, not hide behind a 400.
+  test "an error while building markers is not a 400" do
+    %i[initialize mode].each do |method|
+      original = MapMarkers.instance_method(method)
+      MapMarkers.define_method(method) { |**| raise ArgumentError, "bug in MapMarkers##{method}" }
+      begin
+        error = assert_raises(ArgumentError, ActionView::Template::Error) { get_markers }
+        assert_equal "bug in MapMarkers##{method}", error.message
+      ensure
+        MapMarkers.define_method(method, original)
+      end
+    end
+  end
+
   test "query count is constant" do
     counts = [ 20, MapMarkers::PIN_LIMIT + 50 ].map do |n|
       Message.delete_all
