@@ -1,6 +1,6 @@
-<%# locals: (chatroom:, name: current_display_name, display_name: nil) %>
+<%# locals: (chatroom:, display_name: nil) %>
 <div id="<%= dom_id(chatroom, :compose) %>" class="border-t p-4">
-  <% if name.present? %>
+  <% if (name = current_display_name).present? %>
     <p class="text-sm">
       Chatting as <strong><%= name %></strong>
       <%= button_to "change", display_name_path(chatroom_id: chatroom.id), method: :delete,

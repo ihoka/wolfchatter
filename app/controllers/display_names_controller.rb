@@ -5,15 +5,15 @@ class DisplayNamesController < ApplicationController
     @display_name = DisplayName.new(params.expect(display_name: :name))
     if @display_name.valid?
       remember_display_name(@display_name.name)
-      render_compose name: @display_name.name
+      render_compose
     else
-      render_compose name: nil, status: :unprocessable_content
+      render_compose status: :unprocessable_content
     end
   end
 
   def destroy
     forget_display_name
-    render_compose name: nil
+    render_compose
   end
 
   private
@@ -24,15 +24,13 @@ class DisplayNamesController < ApplicationController
 
   # Turbo stream only: the panel frame advances history on redirects, so these
   # forms never redirect. Other formats get 406.
-  # The cookie written during this request is not readable until the next one,
-  # so the name is passed explicitly.
-  def render_compose(name:, status: :ok)
+  def render_compose(status: :ok)
     respond_to do |format|
       format.turbo_stream do
         render turbo_stream: turbo_stream.replace(
           helpers.dom_id(@chatroom, :compose),
           partial: "chatrooms/compose",
-          locals: { chatroom: @chatroom, name: name, display_name: @display_name }
+          locals: { chatroom: @chatroom, display_name: @display_name }
         ), status: status
       end
       format.any { head :not_acceptable }
