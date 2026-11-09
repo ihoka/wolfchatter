@@ -1,6 +1,9 @@
 require "test_helper"
+require "turbo/broadcastable/test_helper"
 
 class MessageTest < ActiveSupport::TestCase
+  include Turbo::Broadcastable::TestHelper
+
   test "strips author and body" do
     message = chatrooms(:cluj).messages.create!(author_name: "  Ana  ", body: "  hi  ")
     assert_equal "Ana", message.author_name
@@ -26,5 +29,12 @@ class MessageTest < ActiveSupport::TestCase
     room = chatrooms(:rome)
     3.times { |i| room.messages.create!(author_name: "A", body: "m#{i}", created_at: i.minutes.from_now) }
     assert_equal %w[m1 m2], room.recent_messages(2).map(&:body)
+  end
+
+  test "creating a message broadcasts it to the room" do
+    room = chatrooms(:cluj)
+    assert_turbo_stream_broadcasts(room, count: 1) do
+      room.messages.create!(author_name: "Ana", body: "hi")
+    end
   end
 end
