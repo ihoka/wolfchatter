@@ -1,6 +1,6 @@
 ---
 name: self-review
-description: Runs Wolfchatter's three-layer code review (bin/review tools, three focused AI reviewers, then an adversarial verifier for each finding) and writes docs/review/report.md. Use when asked to "run the self-review", "review the codebase before submission", or to re-run the review after fixes.
+description: Runs Wolfchatter's three-layer code review (bin/review tools, three focused AI reviewers, then an adversarial verifier for each finding) and writes docs/review/report.md. Use when asked to "run the self-review", "review the codebase before merge", or to re-run the review after fixes.
 ---
 # /self-review
 
@@ -15,7 +15,7 @@ You do not review the code yourself, and you do not decide what gets fixed.
 
 ## Steps
 
-1. **Layer 1.** Run `bin/review` from the repo root (the full run takes a few minutes). Record its summary
+1. **Layer 1.** Run `bin/review` from the repo root (about 10–30 seconds). Record its summary
    table and exit code. If system tests cannot run (no Chromium), re-run with `bin/review --skip-system`
    and say so in the report. A failing tool does not stop the review: the reviewers get the failure as input.
 2. **Scope.** Record `git rev-parse --short HEAD`, today's date and `git ls-files app config db test | wc -l`.
@@ -39,7 +39,7 @@ You do not review the code yourself, and you do not decide what gets fixed.
    exactly once.
 7. **Hand off for triage.** The lead developer decides fix, don't fix or defer for each finding. You may
    draft `docs/review/notes.md`, starting with:
-   `> **Draft — pending lead developer confirmation.** Recommendations below were drafted by the AI controller; each fix/no-fix decision is confirmed or changed by the lead developer before submission.`
+   `> **Draft — pending lead developer confirmation.** Recommendations below were drafted by the AI controller; each fix/no-fix decision is confirmed or changed by the lead developer before merge.`
    Stop there, and tell the developer the report and the draft are ready.
 
 ## Report template

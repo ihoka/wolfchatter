@@ -29,9 +29,10 @@ missing test for a security control is in scope. Whether the control itself is a
 
 ## Checklist
 - **Invalid input:** lat/lng out of range, non-numeric, missing `chatroom` key (`params.expect` returns
-  400); names that are blank after `strip`; names of 40 vs 41 characters; bodies of 1000 vs 1001
-  characters; unicode whitespace. `String#strip` keeps U+00A0 and U+200B, which matters in
-  `DisplayName#name=` and `Message` `normalizes`.
+  400); names that are blank after `VisibleText.strip` (a regression check: confirm the zero-width and
+  unicode-space cases are tested); names of 40 vs 41 characters; bodies of 1000 vs 1001
+  characters; unicode whitespace. Plain `String#strip` keeps U+00A0 and U+200B, so `DisplayName#name=` and
+  `Message` `normalizes` must go through `VisibleText.strip`; confirm that and that its tests exist.
 - **Display name cookie:** a tampered or unsigned `display_name` cookie is ignored
   (`DisplayNameCookie#current_display_name`); `httponly` and `same_site` flags set; "change" clears it.
 - **Formats:** non-turbo-stream requests to `MessagesController#create` and `DisplayNamesController`

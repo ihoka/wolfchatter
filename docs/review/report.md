@@ -17,7 +17,7 @@
 
 ## Layers 2–3: AI review
 
-**14 raised · 12 confirmed · 1 refuted · 0 uncertain** (queries 1/1/0, test gaps 9/8/1, security 4/4/0 as raised/confirmed/refuted)
+**14 raised (13 after merging S3 into S1) · 12 confirmed · 1 refuted · 0 uncertain** (queries 1/1/0, test gaps 9/8/1, security 4/4/0 as raised/confirmed/refuted)
 
 S3 was merged into S1 (same root cause: no rate limit on room creation), so 13 findings went to verification. S3 counts as confirmed through S1.
 
@@ -96,6 +96,7 @@ Ordered critical → low, then by id. No critical or high findings remain after 
 - **Failure scenario:** If `format.any` is removed from `render_name_form`, an HTML post without a name raises `UnknownFormat` or renders the wrong template, and the suite stays green. A missing `chatroom` key (400) and a non-numeric latitude (422) are also unpinned.
 - **Suggested fix:** Add tests for an HTML message post without a name (406), a `chatrooms` POST without the `chatroom` key (400) and a non-numeric latitude (422).
 - **Verifier:** Confirmed, narrower than raised. The `DisplayNames#destroy` 406 shares `render_compose` with `update`, which is already tested.
+- **Post-review note:** The 406 half was a false positive. Rails' `ExceptionWrapper` maps `UnknownFormat` to 406 regardless of `format.any`; the verifier missed it.
 
 ### Uncertain
 

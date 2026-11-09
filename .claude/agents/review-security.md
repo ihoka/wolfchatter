@@ -49,7 +49,8 @@ Use the Rails Security Guide as your baseline. Accounts are out of scope, so nam
     stream names. Can a client subscribe to a stream it was never shown? Check whether
     `allowed_request_origins` or the production defaults block cross-site WebSocket hijacking. Rooms are
     public, so this matters only if something non-public is broadcast.
-11. **Rate limiting and abuse.** No `rate_limit` anywhere? Measure what one client can do: rooms per second
+11. **Rate limiting and abuse.** Regression check: confirm `rate_limit` exists on room and message creation (10 rooms and 30 messages per
+    minute per IP) and that tests cover both. Then measure what one client can still do: rooms per second
     (each one enqueues a Nominatim job and broadcasts to every viewer), messages per second, and cable
     fan-out. Rails 8 `rate_limit` is backed by `config.cache_store`.
 12. **Secrets, SSL and hosts.** Check `config/credentials*`, `.env*`, the user agent in
@@ -57,7 +58,7 @@ Use the Rails Security Guide as your baseline. Accounts are out of scope, so nam
     out in `production.rb`.
 
 ## Seeded concerns: confirm or refute each, with evidence
-- There is no rate limiting.
+- Room and message creation are rate limited (10 and 30 per minute per IP): confirm the limits exist, are tested, and note what a distributed flood can still do.
 - Spamming room creation fills the geocode queue (1 req/s globally, so N rooms means N seconds of backlog).
 - A second job calling Nominatim would need the same Solid Queue concurrency *group*, not just the same
   `key`. The semaphore is keyed by group plus key, and the group defaults to the job class name.

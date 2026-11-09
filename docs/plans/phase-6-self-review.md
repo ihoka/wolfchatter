@@ -51,7 +51,7 @@ dispatches the layer 2 reviewers in parallel with the layer 1 output, sends each
   fixes are implemented, so the developer can veto them. A finding is resolved only when the
   developer confirms it at the end.
 - Docs are written for the product team.
-- Commits end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- Commits end with a Co-Authored-By trailer naming the model that wrote them.
 - Branch: `phase-6-self-review`.
 
 ## Review Focus
@@ -149,7 +149,7 @@ subagents with the agent file's body as the prompt. The result is equivalent.
 ### Task 4: Triage, fix, note
 
 - [ ] The controller drafts `docs/review/notes.md` with this header:
-  `> **Draft — pending lead developer confirmation.** Recommendations below were drafted by the AI controller; each fix/no-fix decision is confirmed or changed by the lead developer before submission.`
+  `> **Draft — pending lead developer confirmation.** Recommendations below were drafted by the AI controller; each fix/no-fix decision is confirmed or changed by the lead developer before merge.`
 - [ ] For each confirmed finding, the notes record:
   - the decision: fix / don't fix / defer;
   - one line of reasoning;
