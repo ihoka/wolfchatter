@@ -1,8 +1,8 @@
 # Self-review triage notes
 
-> **Draft — pending lead developer confirmation.** Recommendations below were drafted by the AI controller; each fix/no-fix decision is confirmed or changed by the lead developer before merge.
+> **Confirmed by the lead developer on 2026-11-09.** The AI controller drafted the recommendations below, and the lead developer confirmed every fix and no-fix decision as written. The remaining "Not fixed" items are final: they will not be fixed, and "What I'd do with more time" lists ideas, not scheduled work.
 
-Source: [`report.md`](report.md) (commit `87ce01d`, 12 confirmed findings). Re-run after fixes: `bin/review` green (85 runs, 0 failures, 100% line coverage, 0 Brakeman warnings, 0 RuboCop offenses).
+Source: [`report.md`](report.md) (commit `87ce01d`, 12 confirmed findings). Re-run after fixes: `bin/review` green (85 runs, 0 failures, 100% line coverage, 0 Brakeman warnings, 0 RuboCop offenses). After phase 8 (Q1): 113 runs, 0 failures, 100% line coverage, 0 Brakeman warnings, 0 RuboCop offenses.
 
 ## Fixed
 
