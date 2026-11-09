@@ -80,6 +80,21 @@ class MarkersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "box across the antimeridian returns rooms on both sides" do
+    now = Time.current
+    Chatroom.insert_all([
+      { latitude: 0, longitude: 179.5, place_name: "East edge", created_at: now, updated_at: now },
+      { latitude: 0, longitude: -179.5, place_name: "West edge", created_at: now, updated_at: now },
+      { latitude: 0, longitude: 0, place_name: "Prime meridian", created_at: now, updated_at: now }
+    ])
+    get_markers({ south: -10, west: 170, north: 10, east: -170, zoom: 6 })
+    assert_response :success
+    titles = css_select("[data-marker-role-value=set]").map { |n| n["data-marker-title-value"] }
+    assert_includes titles, "East edge"
+    assert_includes titles, "West edge"
+    assert_not_includes titles, "Prime meridian"
+  end
+
   test "query count is constant" do
     counts = [ 20, MapMarkers::PIN_LIMIT + 50 ].map do |n|
       Message.delete_all
