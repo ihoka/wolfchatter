@@ -56,4 +56,19 @@ class GeocodeChatroomJobTest < ActiveJob::TestCase
     job.perform(room)
     sleeps
   end
+
+  test "all geocode jobs share one global concurrency slot" do
+    assert_equal 1, GeocodeChatroomJob.concurrency_limit
+    keys = Chatroom.where(id: [ :cluj, :rome ].map { ActiveRecord::FixtureSet.identify(_1) }).map { GeocodeChatroomJob.new(_1).concurrency_key }
+    assert_equal [ "GeocodeChatroomJob/nominatim" ], keys.uniq
+  end
+
+  test "a job for a deleted room is discarded without an API call" do
+    room = Chatroom.create!(latitude: 1, longitude: 2)
+    clear_enqueued_jobs
+    GeocodeChatroomJob.perform_later(room)
+    room.delete
+    assert_nothing_raised { perform_enqueued_jobs }
+    assert_not_requested :get, /nominatim/
+  end
 end

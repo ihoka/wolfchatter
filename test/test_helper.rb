@@ -20,6 +20,7 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
+    setup { Rails.cache.clear }
     setup { Prosopite.scan }
     teardown { Prosopite.finish }
 

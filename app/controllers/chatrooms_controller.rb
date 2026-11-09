@@ -1,4 +1,6 @@
 class ChatroomsController < ApplicationController
+  rate_limit to: 10, within: 1.minute, only: :create, with: :render_rate_limited
+
   def index
     @chatrooms = Chatroom.order(:id)
   end
@@ -18,6 +20,11 @@ class ChatroomsController < ApplicationController
   end
 
   private
+
+  def render_rate_limited
+    response.set_header("Retry-After", "60")
+    render :rate_limited, status: :too_many_requests
+  end
 
   def chatroom_params
     params.expect(chatroom: %i[latitude longitude])

@@ -32,6 +32,31 @@ class ChatroomsControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame#chatroom_panel"
   end
 
+  test "create without the chatroom key is a bad request" do
+    assert_no_difference "Chatroom.count" do
+      post chatrooms_path, params: {}
+    end
+    assert_response :bad_request
+  end
+
+  test "create rejects a non-numeric latitude" do
+    assert_no_difference "Chatroom.count" do
+      post chatrooms_path, params: { chatroom: { latitude: "abc", longitude: 10 } }
+    end
+    assert_response :unprocessable_content
+    assert_select "turbo-frame#chatroom_panel"
+  end
+
+  test "the 11th room created within a minute is rate limited" do
+    10.times { post chatrooms_path, params: { chatroom: { latitude: 45.5, longitude: 10.25 } } }
+    assert_no_difference "Chatroom.count" do
+      post chatrooms_path, params: { chatroom: { latitude: 45.5, longitude: 10.25 } }
+    end
+    assert_response :too_many_requests
+    assert_equal "60", response.headers["Retry-After"]
+    assert_select "turbo-frame#chatroom_panel", text: /creating rooms too fast/
+  end
+
   test "map starts centred on Europe at zoom 5" do
     get root_path
     assert_select "#map_container[data-map-zoom-value='5'][data-map-center-value='[48.0, 15.0]']"

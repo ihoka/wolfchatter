@@ -1,0 +1,73 @@
+#!/usr/bin/env ruby
+# Layer 1 of the self-review: run every deterministic check and summarise.
+#
+#   bin/review                # full run, includes system tests (test:all)
+#   bin/review --skip-system  # quick run, unit/integration tests only
+#
+# Raw output of each tool lands in tmp/review/<name>.txt. Exit 0 only if
+# every tool exited 0. Tools run sequentially and no failure is silenced.
+require "open3"
+require "json"
+require "fileutils"
+require "optparse"
+
+skip_system = false
+OptionParser.new do |o|
+  o.banner = "Usage: bin/review [--skip-system]"
+  o.on("--skip-system", "Run bin/rails test instead of test:all") { skip_system = true }
+end.parse!
+
+ROOT = File.expand_path("..", __dir__)
+OUT = File.join(ROOT, "tmp", "review")
+FileUtils.mkdir_p(OUT)
+Dir.chdir(ROOT)
+
+COVERAGE_FILE = File.join(ROOT, "coverage", ".last_run.json")
+test_task = skip_system ? "test" : "test:all"
+
+# Each entry: name, env, command, key-number lambda (output, exit_ok -> String)
+CHECKS = [
+  ["brakeman", {}, %w[bin/brakeman -q --no-pager],
+   ->(out, _) { (m = out.match(/Security Warnings\s*\|\s*(\d+)/) || out.match(/(\d+) warnings? found/i)) ? "#{m[1]} warnings" : (out =~ /No warnings found/ ? "0 warnings" : "?") }],
+  ["bundler-audit", {}, %w[bin/bundler-audit],
+   ->(out, _) { n = out.scan(/^Name:/).size; n.zero? && out =~ /No vulnerabilities found/ ? "none" : (n.zero? ? "?" : "#{n} vulnerabilities") }],
+  ["importmap-audit", {}, %w[bin/importmap audit],
+   ->(out, _) { out =~ /No vulnerable packages found/ ? "none" : ((n = out.scan(/^\S+\s+\d.*(?:low|moderate|high|critical)/i).size).zero? ? "?" : "#{n} vulnerabilities") }],
+  ["rubocop", {}, %w[bin/rubocop],
+   ->(out, _) { (m = out.match(/(\d+) offenses? detected/)) ? "#{m[1]} offenses" : (out =~ /no offenses/ ? "0 offenses" : "?") }],
+  ["tests", { "COVERAGE" => "1" }, ["bin/rails", test_task],
+   ->(out, _) { (m = out.match(/(\d+) runs?, \d+ assertions?, (\d+) failures?, (\d+) errors?/)) ? "#{m[1]} runs, #{m[2]} failures, #{m[3]} errors" : "?" }]
+].freeze
+
+results = []
+CHECKS.each do |name, env, cmd, key|
+  print "-> #{name} ... "
+  $stdout.flush
+  File.delete(COVERAGE_FILE) if name == "tests" && File.exist?(COVERAGE_FILE)
+  out, status = Open3.capture2e(env, *cmd)
+  File.write(File.join(OUT, "#{name}.txt"), out)
+  ok = status.success?
+  results << [name, ok, key.call(out, ok)]
+  puts ok ? "pass" : "FAIL (exit #{status.exitstatus})"
+end
+
+coverage = begin
+  pct = JSON.parse(File.read(COVERAGE_FILE)).dig("result", "line")
+  pct ? "#{pct}% line" : "?"
+rescue Errno::ENOENT, JSON::ParserError
+  "?"
+end
+tests_ok = results.last[1]
+results << ["coverage", tests_ok && coverage != "?", coverage]
+
+width = results.map { |r| r[0].size }.max
+puts
+puts "#{'tool'.ljust(width)} | status | key number"
+puts "#{'-' * width}-+--------+-----------"
+results.each do |name, ok, key|
+  puts "#{name.ljust(width)} | #{(ok ? 'pass' : 'FAIL').ljust(6)} | #{key}"
+end
+puts
+puts "Raw output: tmp/review/<tool>.txt#{' (system tests skipped)' if skip_system}"
+
+exit(results.all? { |r| r[1] } ? 0 : 1)

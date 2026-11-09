@@ -7,7 +7,7 @@ class DisplayName
   attribute :name, :string
 
   def name=(value)
-    super(value.to_s.strip)
+    super(VisibleText.strip(value))
   end
 
   validates :name, presence: true, length: { maximum: MAX_LENGTH }

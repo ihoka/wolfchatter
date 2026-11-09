@@ -34,8 +34,34 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "message markup is escaped" do
-    post chatroom_messages_path(@room), params: { message: { body: "<script>x</script>" } }, as: :turbo_stream
+    assert_difference -> { @room.messages.count }, 1 do
+      post chatroom_messages_path(@room), params: { message: { body: "<script>x</script>" } }, as: :turbo_stream
+    end
+    assert_response :success
+    assert_equal "<script>x</script>", @room.messages.last.body
     assert_not_includes response.body, "<script>x</script>"
+    assert_includes response.body, "&lt;script&gt;x&lt;/script&gt;"
+  end
+
+  test "author name markup is escaped in the append stream" do
+    patch display_name_path, params: { display_name: { name: "<b>Eve</b>" }, chatroom_id: @room.id }, as: :turbo_stream
+    post chatroom_messages_path(@room), params: { message: { body: "hi" } }, as: :turbo_stream
+    assert_response :success
+    assert_equal "<b>Eve</b>", @room.messages.last.author_name
+    assert_not_includes response.body, "<b>Eve</b>"
+    assert_includes response.body, "&lt;b&gt;Eve&lt;/b&gt;"
+  end
+
+  test "the 31st message within a minute is rate limited" do
+    30.times { post chatroom_messages_path(@room), params: { message: { body: "hi" } }, as: :turbo_stream }
+    assert_no_difference -> { Message.count } do
+      post chatroom_messages_path(@room), params: { message: { body: "my draft" } }, as: :turbo_stream
+    end
+    assert_response :too_many_requests
+    assert_equal "60", response.headers["Retry-After"]
+    assert_select "input[name='message[body]'][value=?]", "my draft"
+    assert_select "turbo-stream[action=replace][target=?]", dom_id(@room, :message_form)
+    assert_includes response.body, "sending messages too fast"
   end
 
   test "room page lists recent messages oldest first" do
@@ -44,9 +70,23 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ messages(:hello).body, messages(:reply).body ], bodies
   end
 
+  test "room page renders the timestamp in UTC with a datetime attribute" do
+    message = messages(:hello)
+    get chatroom_path(@room)
+    time = message.created_at.utc
+    assert_select "article##{dom_id(message)} time[datetime=?]", time.iso8601,
+                  text: "#{time.strftime('%d/%m/%Y %H:%M')} UTC"
+  end
+
   test "each message has a stable dom id" do
     get chatroom_path(@room)
     assert_select "article##{dom_id(messages(:hello))}"
+  end
+
+  test "html post without a name gets 406" do
+    delete display_name_path, params: { chatroom_id: @room.id }, as: :turbo_stream
+    post chatroom_messages_path(@room), params: { message: { body: "hi" } }
+    assert_response :not_acceptable
   end
 
   test "non turbo stream requests get 406" do
