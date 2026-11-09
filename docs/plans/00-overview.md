@@ -51,3 +51,25 @@ Each cut is recorded in the README and PRD as "documented, not done". Phases 6 a
 - Sign off the PRD (phase 0).
 - Review each phase PR before merge.
 - Triage every self-review finding (phase 6); `notes.md` records the lead developer's reasoning.
+
+## Carry-forward notes for later phase plans
+
+Decisions found during phase 1 reviews. Each phase plan must address its items.
+
+- **Phase 2:** enable the Content Security Policy once Leaflet lands (img-src for
+  tile.openstreetmap.org, script and style nonces for importmap, Turbo progress-bar style via the
+  csp-nonce meta). It was deferred in phase 1 because the sources were unknown. Vendor Leaflet CSS
+  and set the marker icon image paths, since importmap does not ship them. Give `#map` an accessible
+  name. Consider `data-turbo-permanent` on `#map` and `#markers` so full visits and back/forward do
+  not reinitialise the map.
+- **Phase 3:** system tests must see broadcasts despite the `:test` job adapter. Pick one approach
+  explicitly (`perform_enqueued_jobs`, an inline adapter in `ApplicationSystemTestCase`, or
+  synchronous `broadcast_*_to`) and wait for `turbo-cable-stream-source[connected]` before
+  triggering. The N+1 proof test asserts the raise from the request call, or uses
+  `Prosopite.n_plus_one_queries`. Add `aria-live` to the chat panel. Flash placement goes above the map.
+- **Phase 4:** pin titles go stale on other clients after geocoding, because the marker carries the
+  title. Either also broadcast a marker replace or keep the title out of the marker. Cap or truncate
+  `place_name` in the job.
+- **Phase 5:** production multi-database URLs on fly.io. `DATABASE_URL` only feeds the primary
+  database, so queue, cable and cache need their own URLs or a single-database collapse. Also cover
+  host authorization and the production cache database.
