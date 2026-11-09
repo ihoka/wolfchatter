@@ -15,8 +15,8 @@ loads.
 ## Global Constraints
 
 - PRD length: 1–2 printed pages (≈ 600–1000 words, tables count).
-- Docs describe a regular product project: no mention of interviews, candidates, grading, or the
-  originating company. Requirements come from "the product request"; the human is "the lead developer".
+- Docs are written for the product team; requirements come from "the product request"; the human
+  is "the lead developer".
 - Every technical decision in the PRD states its reason in one clause.
 - Branch: `phase-0-docs`. One PR into `main`, merge commit.
 
@@ -26,7 +26,6 @@ loads.
 - PRD over length — reviewer runs `wc -w docs/prd.md` (must be ≤ 1000).
 - `CLAUDE.md` rules that can't be followed yet (commands that don't exist until phase 1) — each
   command is marked as available from phase 1 or is phrased so it stays true.
-- Interview framing leaking into docs — reviewer greps for `interview|candidate|grad|brief`.
 - Missing non-goals — PRD lists every non-goal from spec §3.
 
 ---
@@ -71,10 +70,10 @@ Required sections, in order (headings exactly):
    Nominatim 1 req/s policy, no rate limiting initially (revisited in self-review).
 
 - [ ] **Step 1:** Write `docs/prd.md` with the sections above.
-- [ ] **Step 2: Verify** — `wc -w docs/prd.md` ≤ 1000; `grep -inE 'interview|candidate|grad|brief' docs/prd.md` returns nothing.
+- [ ] **Step 2: Verify** — `wc -w docs/prd.md` ≤ 1000.
 - [ ] **Step 3: Commit** — `git commit -m "docs: add technical PRD (draft)"`
 - [ ] **Step 4: CHECKPOINT — stop.** The lead developer edits and signs off the PRD. Apply their
-  edits in a follow-up commit `docs: revise PRD after review`. Do not start Task 3 until sign-off.
+  edits in a follow-up commit `docs: tighten PRD after review`. Do not start Task 3 until sign-off.
 
 ### Task 3: Write CLAUDE.md
 
@@ -105,10 +104,10 @@ Content (keep under ~80 lines; terse, imperative):
   - Verify before claiming done: run the commands above and quote the result.
   - Small commits, Conventional Commits prefixes (`feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`).
   - One branch + PR per phase; plans in `docs/plans/` are the source of truth for task scope.
-  - Docs describe a product project; record decisions with their reason.
+  - Write docs for teammates; record every decision with its reason.
 
 - [ ] **Step 1:** Write `CLAUDE.md`.
-- [ ] **Step 2: Verify** — every command listed is in the phase 1 plan's verification steps.
+- [ ] **Step 2: Verify** — every command appears in the phase-1 plan (`bin/dev` is the run command from its README task).
 - [ ] **Step 3: Commit** — `git commit -m "docs: add CLAUDE.md project rules for AI agents"`
 
 ### Task 4: Open and merge the PR

@@ -22,7 +22,7 @@ per task, review gate between tasks, TDD, small single-purpose commits.
 | 0 | Docs | `docs/prd.md` (1–2 pages), `CLAUDE.md` | PRD signed off by the lead developer |
 | 1 | Skeleton | Rails 8.1 app on Postgres, Tailwind, test + lint + security tooling, README, empty-state page | `bin/rails test`, `bin/rails test:system`, `bin/rubocop`, `bin/brakeman` all green |
 | 2 | Map & rooms | Leaflet/OSM map, click-to-create room, click pin to switch panel, URL per room | System test: create two rooms, switch between them, title changes |
-| 3 | Messages | Name cookie, posting messages, real-time messages + new pins via Turbo Streams | System test: two browser sessions see each other's messages and pins live |
+| 3 | Messages | Name cookie, posting messages, real-time messages + new pins via Turbo Streams | System test: two browser sessions see each other's messages and pins live; N+1 proof test covers both an integration test and a system test |
 | 4 | Place names | Nominatim reverse-geocoding job, live title update, fallback title | Job tests with stubbed HTTP (found / not found / failure) |
 | 5 | Infra doc | `docs/infrastructure.md`: fly.io staging + production table with assumptions | Doc reviewed by lead developer |
 | 6 | Self-review | `bin/review`, review agents + `/self-review` skill, `docs/review/report.md`, `docs/review/notes.md` | Lead developer has triaged every finding; fixes merged |
