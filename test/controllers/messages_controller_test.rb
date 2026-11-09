@@ -29,6 +29,8 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
       post chatroom_messages_path(@room), params: { message: { body: "hi" } }, as: :turbo_stream
     end
     assert_response :unprocessable_content
+    assert_select "turbo-stream[action=replace][target=?]", dom_id(@room, :compose)
+    assert_select "input[placeholder='write your user name here']"
   end
 
   test "message markup is escaped" do

@@ -17,6 +17,14 @@ class DisplayNamesControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_content
   end
 
+  test "an invalid name replaces the form with errors even when a name exists" do
+    patch display_name_path, params: { display_name: { name: "Ana" }, chatroom_id: chatrooms(:cluj).id }, as: :turbo_stream
+    patch display_name_path, params: { display_name: { name: "a" * 41 }, chatroom_id: chatrooms(:cluj).id }, as: :turbo_stream
+    assert_response :unprocessable_content
+    assert_select "input[placeholder='write your user name here']"
+    assert_select "[role=alert]"
+  end
+
   test "changing the name forgets it" do
     patch display_name_path, params: { display_name: { name: "Ana" }, chatroom_id: chatrooms(:cluj).id }, as: :turbo_stream
     delete display_name_path, params: { chatroom_id: chatrooms(:cluj).id }, as: :turbo_stream
