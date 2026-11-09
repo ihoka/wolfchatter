@@ -49,6 +49,12 @@ With a paid tile provider the total is about $84 (+$30). Tile volume is the unkn
 - **Release command** `bin/rails db:prepare` in `fly.toml`. The Docker entrypoint already runs it when the server starts, but with two machines both would run it at boot; the release command runs it once per deploy.
 - **Health check** `/up` (the Rails default; its logs are already silenced). Fly's `internal_port` is 80, because the Dockerfile runs Thruster on port 80 in front of Puma.
 - **`force_ssl`** is on, so cookies (including the signed name cookie) are marked Secure and Fly's proxy must terminate TLS (`assume_ssl` is also on).
+- **Nominatim per environment.**
+  - **Separate throttles:** the 1 request/s limit is a Solid Queue semaphore in each environment's own database. Production and staging therefore throttle separately, but share one User-Agent.
+  - **Distinct User-Agents:** give each environment its own User-Agent with a contact address (set `config.x.nominatim.user_agent` from an env var such as `NOMINATIM_USER_AGENT`), or turn geocoding off in staging.
+  - **One throttle per cluster:** several app machines on one cluster still share a single global throttle.
+  - **Ceiling:** about 86k lookups a day. Past that, titles lag. Reaching it, or seeing room spam, is the signal to switch geocoder.
+  - **Caching:** storing `place_name` on the room is the result caching that Nominatim's policy asks for.
 - **Connections.** Each machine can open up to 3 threads x 4 databases = 12 connections, so 2 machines use about 24. The Basic plan's connection limit was not checked (unverified); move to Starter ($72) if it is lower.
 
 ## When this stops being enough
