@@ -26,8 +26,9 @@ Available once the Rails app is generated (phase 1).
 - Hotwire first: server-rendered HTML + Turbo Streams. Stimulus only for behaviour HTML cannot
   express (map, scroll, form niceties). One Stimulus controller per behaviour.
 - Thin controllers. Logic lives in models or small POROs under `app/models`. Jobs only orchestrate.
-- Declare broadcasts in models (`broadcasts_to` or explicit `broadcast_*_later`), rendered from
-  partials shared with the normal views.
+- Declare broadcasts in models: synchronous `broadcast_*_to` in `after_create_commit` is the
+  default. It's a cheap Solid Cable insert, needs no job process, and system tests see it.
+  Broadcasts render from partials shared with the normal views, using only record attributes.
 - Live map pins: initial and live pins are both rendered as marker elements (data attributes) in
   `#markers`; no JSON endpoint or JSON blob, no client-side store. A Stimulus controller manages
   them, deduped by room id.
