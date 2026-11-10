@@ -33,7 +33,8 @@ and `CLAUDE.md` still apply wherever this design doesn't change them.
 - **Delivery:** no JSON endpoint, no new JS or gem dependencies, no PostGIS. Pins and clusters are
   server-rendered elements with data attributes, delivered as a Turbo Stream.
 - **Queries:**
-  - every query is bounded by `PIN_LIMIT` and uses the new `(latitude, longitude)` index;
+  - every query is bounded by `PIN_LIMIT` and uses the new `(latitude, longitude)` index (amended after
+    phase 8: the cluster query's output is bounded, its cost is not; see the spec);
   - a markers request runs **at most 3 SQL queries** whatever the room count;
   - Prosopite stays on and nothing is allow-listed.
 - **Choosing pins or clusters is by count, not zoom.** If there are `PIN_LIMIT` or fewer rooms in the
@@ -43,7 +44,7 @@ and `CLAUDE.md` still apply wherever this design doesn't change them.
   counts are integers.
 - **Commits:** Conventional Commit prefixes, each ending with
   `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Branch `phase-8-viewport-pins`.
-- **Docs** are written for the product team, with no interview framing.
+- **Docs** are written for the product team.
 
 ## Review Focus
 
@@ -343,7 +344,6 @@ and `CLAUDE.md` still apply wherever this design doesn't change them.
 - [ ] **Step 3: Verify.**
   - `bin/review` is green, with 100% line coverage and no RuboCop or Brakeman findings.
   - Every link in the changed docs resolves.
-  - `grep -inE 'interview|candidate'` over `docs README.md CLAUDE.md` returns nothing.
 - [ ] **Step 4: Commit.** `docs: document viewport pins and clustering`
 - [ ] **Step 5: Push and open the PR.** The PR links this plan and the design doc and summarises the
   rulings.

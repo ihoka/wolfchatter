@@ -14,12 +14,12 @@ No Redis, no Node build, no SPA framework. Do not add any.
 
 ## Commands
 
-Available once the Rails app is generated (phase 1).
-
 - `bin/setup` / `bin/dev` (http://localhost:3000)
-- `bin/rails test` / `bin/rails test:system`
+- `bin/rails test` / `bin/rails test:system` / `bin/rails test:all`
 - `COVERAGE=1 bin/rails test` writes `coverage/`
 - `bin/rubocop`, `bin/brakeman`, `bin/bundler-audit`
+- `bin/review`: every deterministic check in one run (layer 1 of the self-review)
+- `/self-review` (Claude Code skill): `bin/review`, then the AI reviewers and a verifier; writes `docs/review/report.md`
 
 ## Conventions
 
@@ -46,5 +46,5 @@ Available once the Rails app is generated (phase 1).
 - Verify before claiming done: run the relevant commands above and quote the result.
 - Small commits with Conventional Commit prefixes: `feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`.
 - One branch and PR per phase. Plans in `docs/plans/` are the source of truth for task scope.
-- Precedence: spec > PRD > phase plan > these conventions; if a plan contradicts a convention, stop and ask the lead developer.
+- Precedence: spec > PRD > phase plan > these conventions; if a plan contradicts a convention, stop and ask the lead engineer (Istvan Hoka).
 - Write docs for teammates; record every decision with its reason.

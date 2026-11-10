@@ -15,8 +15,8 @@ loads.
 ## Global Constraints
 
 - PRD length: 1–2 printed pages (≈ 600–1000 words, tables count).
-- Docs are written for the product team; requirements come from "the product request"; the human
-  is "the lead developer".
+- Docs are written for the product team. Requirements come from the product request. Istvan Hoka is
+  the lead engineer and signs off every checkpoint.
 - Every technical decision in the PRD states its reason in one clause.
 - Branch: `phase-0-docs`. One PR into `main`, merge commit.
 
@@ -72,7 +72,7 @@ Required sections, in order (headings exactly):
 - [ ] **Step 1:** Write `docs/prd.md` with the sections above.
 - [ ] **Step 2: Verify** — `wc -w docs/prd.md` ≤ 1000.
 - [ ] **Step 3: Commit** — `git commit -m "docs: add technical PRD (draft)"`
-- [ ] **Step 4: CHECKPOINT — stop.** The lead developer edits and signs off the PRD. Apply their
+- [ ] **Step 4: CHECKPOINT — stop.** The lead engineer edits and signs off the PRD. Apply their
   edits in a follow-up commit `docs: tighten PRD after review`. Do not start Task 3 until sign-off.
 
 ### Task 3: Write CLAUDE.md
@@ -101,7 +101,7 @@ Content (keep under ~80 lines; terse, imperative):
 - **Workflow rules:**
   - TDD: failing test first, watch it fail, then implement.
   - Every N+1 is a bug: fix the query; never disable, allowlist or rescue Prosopite (raises in test from phase 1).
-  - Precedence: spec > PRD > phase plan > these conventions; on conflict, stop and ask the lead developer.
+  - Precedence: spec > PRD > phase plan > these conventions; on conflict, stop and ask the lead engineer.
   - Verify before claiming done: run the commands above and quote the result.
   - Small commits, Conventional Commits prefixes (`feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`).
   - One branch + PR per phase; plans in `docs/plans/` are the source of truth for task scope.
@@ -115,5 +115,5 @@ Content (keep under ~80 lines; terse, imperative):
 
 - [ ] **Step 1:** `git push -u origin phase-0-docs`
 - [ ] **Step 2:** `gh pr create --base main --title "Phase 0: PRD and AI project rules" --body <summary linking docs/plans/phase-0-docs.md>`
-- [ ] **Step 3: CHECKPOINT** — lead developer reviews; then `gh pr merge --merge --delete-branch`
+- [ ] **Step 3: CHECKPOINT** — lead engineer reviews; then `gh pr merge --merge --delete-branch`
   and `git switch main && git pull`.

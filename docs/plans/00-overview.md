@@ -5,7 +5,7 @@
 
 Each phase gets its own detailed plan (`docs/plans/phase-N-*.md`), written just before the phase
 starts so it reflects what earlier phases actually produced. A phase plan is approved by the lead
-developer before execution. Execution: superpowers `subagent-driven-development` — one subagent
+engineer before execution (from phase 3, under a standing go-ahead; see below). Execution: superpowers `subagent-driven-development` — one subagent
 per task, review gate between tasks, TDD, small single-purpose commits.
 
 ## Git workflow
@@ -19,14 +19,14 @@ per task, review gate between tasks, TDD, small single-purpose commits.
 
 | # | Phase | Delivers | Exit criteria |
 |---|---|---|---|
-| 0 | Docs | `docs/prd.md` (1–2 pages), `CLAUDE.md` | PRD signed off by the lead developer |
+| 0 | Docs | `docs/prd.md` (1–2 pages), `CLAUDE.md` | PRD signed off by the lead engineer |
 | 1 | Skeleton | Rails 8.1 app on Postgres, Tailwind, test + lint + security tooling, README, empty-state page | `bin/rails test`, `bin/rails test:system`, `bin/rubocop`, `bin/brakeman` all green |
 | 2 | Map & rooms | Leaflet/OSM map, click-to-create room, click pin to switch panel, URL per room | System test: create two rooms, switch between them, title changes |
 | 3 | Messages | Name cookie, posting messages, real-time messages + new pins via Turbo Streams | System test: two browser sessions see each other's messages and pins live; N+1 proof test covers both an integration test and a system test |
 | 4 | Place names | Nominatim reverse-geocoding job, live title update, fallback title | Job tests with stubbed HTTP (found / not found / failure) |
-| 5 | Infra doc | `docs/infrastructure.md`: fly.io staging + production table with assumptions | Doc reviewed by lead developer |
-| 6 | Self-review | `bin/review`, review agents + `/self-review` skill, `docs/review/report.md`, `docs/review/notes.md` | Lead developer has triaged every finding; fixes merged |
-| 7 | README polish | Final `README.md` as the project's front page (see below) | Lead developer reads it top to bottom; a fresh clone runs by following it alone |
+| 5 | Infra doc | `docs/infrastructure.md`: fly.io staging + production table with assumptions | Doc reviewed by lead engineer |
+| 6 | Self-review | `bin/review`, review agents + `/self-review` skill, `docs/review/report.md`, `docs/review/notes.md` | Lead engineer has triaged every finding; fixes merged |
+| 7 | README polish | Final `README.md` as the project's front page (see below) | Lead engineer reads it top to bottom; a fresh clone runs by following it alone |
 | 8 | Viewport pins | Pins loaded for the visible area only, server-side count clusters when dense, live counts ([plan](phase-8-viewport-pins.md)) | Map page size is constant at 10k rooms; system tests for clusters and live updates green |
 
 ## README (built up across phases, finished in phase 7)
@@ -51,7 +51,12 @@ Each cut is recorded in the README and PRD as "documented, not done". Phases 6 a
 - Approve each phase plan before execution.
 - Sign off the PRD (phase 0).
 - Review each phase PR before merge.
-- Triage every self-review finding (phase 6); `notes.md` records the lead developer's reasoning.
+- Triage every self-review finding (phase 6); `notes.md` records the lead engineer's reasoning.
+
+How it ran: the lead engineer approved the plans and merges for phases 0–2 one by one. From phase 3
+he gave a standing go-ahead to execute and merge phases 3–7 and reviewed the end result. Phase 8 was
+his decision to fix review finding Q1; he approved its design and plan explicitly before it ran, and
+accepted its one spec change (the cluster query's cost) before merge.
 
 ## Carry-forward notes for later phase plans
 

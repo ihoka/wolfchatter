@@ -18,7 +18,7 @@ of these. Mention one only if it changes the queries the app issues.
 
 ## Checklist
 1. **N+1 in every render path.** Walk each partial rendered from a collection or a broadcast:
-   `chatrooms/_marker` (collection in `_map_page`, broadcast in `Chatroom` callbacks), `messages/_message`
+   `chatrooms/_marker` and `chatrooms/_cluster` (rendered by `markers/index.turbo_stream.erb`, and `_marker` broadcast in `Chatroom` callbacks), `messages/_message`
    (collection in `_panel`, broadcast in `Message#after_create_commit`), `chatrooms/_title`. Does any of
    them touch an association (for example `message.chatroom`) that nothing preloads?
 2. **Broadcast and job queries.** `broadcast_*_to` renders a partial on the request thread or in the job.
@@ -27,9 +27,10 @@ of these. Mention one only if it changes the queries the app issues.
 3. **Indexes.** For each `where`, `order`, `find` and association scope, name the index that serves it in
    `db/schema.rb`. `Chatroom#recent_messages` orders by `created_at DESC, id DESC`. Check whether
    `index_messages_on_chatroom_id_and_created_at` covers the `id` tie-break, or whether Postgres sorts.
-4. **Unbounded queries.** `Chatroom.order(:id)` in `ChatroomsController#index` and `#show` loads every room
-   and renders a marker for each. Measure it: rows, bytes of HTML, time at 10k rooms.
-5. **Query count per page.** For `GET /`, `GET /chatrooms/:id` (full page and frame request, with header
+4. **Bounded queries.** `MapMarkers` serves `GET /chatrooms/markers`: pins capped at `PIN_LIMIT + 1`, a cluster
+   `GROUP BY` over the box, lone rooms by id. Check the 3-query ceiling, and measure a world-view and a
+   Europe-view markers request at 10k rooms.
+5. **Query count per page.** For `GET /`, `GET /chatrooms/markers`, `GET /chatrooms/:id` (full page and frame request, with header
    `Turbo-Frame: chatroom_panel`), `POST /chatrooms` and `POST /chatrooms/:id/messages`, count the SQL
    statements in `log/test.log` or with a probe. Flag any count that grows with the number of rows.
 6. **Prosopite blind spots.** Prosopite only raises on code a test executes (`test/test_helper.rb` scans
@@ -39,8 +40,9 @@ of these. Mention one only if it changes the queries the app issues.
    anything that makes these tables grow without bound or poll often (`config/queue.yml`).
 
 ## Seeded concerns: confirm or refute each, with evidence
-- **Unbounded pin load.** All pins load on every full page. The PRD accepts this; give the measured cost
-  and the row count where it stops being acceptable.
+- **Cluster query cost at world zoom.** The cluster `GROUP BY` reads every room in the box, so a world view
+  scans the table. The PRD accepts this as a risk; give the measured cost and where it stops being
+  acceptable.
 
 ## Probes
 - Run `bin/rails test <file>` to replay a path, then read `log/test.log`. Do not set `COVERAGE=1`, which

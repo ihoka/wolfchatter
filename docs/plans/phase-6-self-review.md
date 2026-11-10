@@ -4,7 +4,7 @@
 
 **Goal:** A repeatable, committed review setup that combines deterministic tools, focused AI
 reviewers and an adversarial verification pass. We run it against the final code and commit both the
-setup and its report. The lead developer then triages every finding (fix, or don't fix and why), and
+setup and its report. The lead engineer then triages every finding (fix, or don't fix and why), and
 the agreed fixes land.
 
 **Architecture:** Three layers. One entry point.
@@ -31,7 +31,7 @@ dispatches the layer 2 reviewers in parallel with the layer 1 output, sends each
   short section. REFUTED findings are counted, not listed, to keep the report readable.
 - Reviewer agents are read-only. Their tools are Read, Grep, Glob and Bash, with Bash used for
   running tests or tools only. They never edit files.
-- **Seeded concerns.** The reviewers get the known candidates from earlier phase reviews, so the
+- **Seeded concerns.** The reviewers get the known concerns from earlier phase reviews, so the
   report considers them explicitly, and they must still look beyond them:
   - no rate limiting;
   - a synchronous broadcast failure after commit returns 500 for a message that was already saved;
@@ -46,10 +46,10 @@ dispatches the layer 2 reviewers in parallel with the layer 1 output, sends each
 
   Phase 4's final review checked SSRF via geocoding and found no path to it: the host is a
   constant and the params are numeric and validated. Record that as checked.
-- **Triage belongs to the lead developer.** The controller drafts recommendations in
-  `docs/review/notes.md`, marked **"Draft — pending lead developer confirmation"**. Recommended
-  fixes are implemented, so the developer can veto them. A finding is resolved only when the
-  developer confirms it at the end.
+- **Triage belongs to the lead engineer.** The controller drafts recommendations in
+  `docs/review/notes.md`, marked **"Draft — pending lead engineer confirmation"**. Recommended
+  fixes are implemented, so the lead engineer can veto them. A finding is resolved only when the
+  lead engineer confirms it at the end.
 - Docs are written for the product team.
 - Commits end with a Co-Authored-By trailer naming the model that wrote them.
 - Branch: `phase-6-self-review`.
@@ -149,7 +149,7 @@ subagents with the agent file's body as the prompt. The result is equivalent.
 ### Task 4: Triage, fix, note
 
 - [ ] The controller drafts `docs/review/notes.md` with this header:
-  `> **Draft — pending lead developer confirmation.** Recommendations below were drafted by the AI controller; each fix/no-fix decision is confirmed or changed by the lead developer before merge.`
+  `> **Draft — pending lead engineer confirmation.** Claude drafted these recommendations from the report; the lead engineer confirms or changes each fix/no-fix decision before merge.`
 - [ ] For each confirmed finding, the notes record:
   - the decision: fix / don't fix / defer;
   - one line of reasoning;

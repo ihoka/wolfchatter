@@ -53,7 +53,10 @@ Use the Rails Security Guide as your baseline. Accounts are out of scope, so nam
     minute per IP) and that tests cover both. Then measure what one client can still do: rooms per second
     (each one enqueues a Nominatim job and broadcasts to every viewer), messages per second, and cable
     fan-out. Rails 8 `rate_limit` is backed by `config.cache_store`.
-12. **Secrets, SSL and hosts.** Check `config/credentials*`, `.env*`, the user agent in
+12. **Markers endpoint.** `MarkersController#parse_viewport`: non-finite, out-of-range and missing params
+    must give 400, never 500. `MapMarkers` SQL must use bound or quoted values only (Arel nodes, no string
+    interpolation). The endpoint is unthrottled (accepted risk in the PRD): note what one client can cost.
+13. **Secrets, SSL and hosts.** Check `config/credentials*`, `.env*`, the user agent in
     `config/initializers/nominatim.rb`, `force_ssl` and `assume_ssl`, and whether `config.hosts` is commented
     out in `production.rb`.
 
@@ -64,6 +67,8 @@ Use the Rails Security Guide as your baseline. Accounts are out of scope, so nam
   `key`. The semaphore is keyed by group plus key, and the group defaults to the job class name.
 - SSRF via geocoding: a previous review found no path, because the host is a constant and the params are
   numeric and validated. Re-check it and report REFUTED with the lines you read, unless the code has changed.
+- `GET /chatrooms/markers` has no rate limit, and a world-view request scans every room (accepted in the PRD
+  risks): confirm, and give the cost per request.
 
 ## Output
 Return a fenced YAML list, or exactly `no findings`. Use ids `S1`, `S2`, and so on.

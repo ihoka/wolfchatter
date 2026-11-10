@@ -302,4 +302,4 @@ Clicks land at offsets that miss the fixture pins at the initial view. If one co
 - [ ] **Step 1:** Add a short "Using Wolfchatter" section to README.md: click the map to open a room, and click a pin to switch rooms. Start an "Improvements over the mockups" section with two items: a URL per room, and OSM tiles.
 - [ ] **Step 2: Commit** — `docs: describe map usage in README`
 - [ ] **Step 3:** Push `phase-2-map-and-rooms` and open the PR with `gh`, linking this plan and listing the verification output.
-- [ ] **Step 4: CHECKPOINT:** the lead developer reviews the PR before merge.
+- [ ] **Step 4: CHECKPOINT:** the lead engineer reviews the PR before merge.

@@ -82,6 +82,5 @@ Overview: [`00-overview.md`](00-overview.md) (README section)
   - every link resolves (`ls` each path);
   - every command in the README exists;
   - the quick start works from a clean database (`bin/rails db:drop && bin/setup --skip-server && bin/rails test`);
-  - `grep -inE 'interview|candidate'` returns nothing.
 - [ ] Commit: `docs: polish README as the project front page`
 - [ ] Push, open the PR, and merge it after review.

@@ -8,6 +8,13 @@ in the [PRD](docs/prd.md).
 
 ![Wolfchatter: a map of Europe with five room pins, and the Cluj-Napoca room open in the chat panel](docs/screenshot.png)
 
+**Start here**
+
+- [PRD](docs/prd.md): what it does, the open questions and how each was settled, the data model and risks.
+- [How this was built with AI](#how-this-was-built-with-ai): the workflow, the rules and the review setup.
+- [Self-review](docs/review/report.md) and [triage notes](docs/review/notes.md): what the review found, and what was fixed and why.
+- [Infrastructure and cost](docs/infrastructure.md): the fly.io plan for staging and production.
+
 ## Features
 
 - **Open a room:** click anywhere on the map. A pin drops there and the panel on the right
@@ -42,7 +49,8 @@ bin/dev                   # http://localhost:3000
 ```
 
 Use `bin/dev`, not a bare `bin/rails server`: only `bin/dev` runs the background jobs that set
-place names (see [Run](#run)).
+place names (see [Run](#run)). To see clustering you need more than 300 rooms in view; see
+[Try clustering](#try-clustering).
 
 ## Architecture at a glance
 
@@ -124,6 +132,11 @@ flowchart TD
   the browser's back button moves between them.
 - **OpenStreetMap tiles** replace the watercolor tiles in the mockups. They need no API key, and
   the attribution stays visible.
+- **Live end to end:** messages, new pins and place-name titles appear for everyone without a
+  reload. The product request made real time optional.
+- **Scales to many rooms:** the map loads only the visible area and groups dense areas into count
+  badges, so the page stays small at any number of rooms.
+- **Abuse limits:** per-IP rate limits on creating rooms and posting messages.
 
 Place names come from [Nominatim](https://nominatim.org/) (© OpenStreetMap contributors). Lookups
 happen server-side in a background job. The job sends an identifying User-Agent and is throttled to
@@ -147,8 +160,11 @@ one request per second, as Nominatim's usage policy requires.
   per zoom level and does not merge neighbours.
 - **Cells look taller near the poles.** The grid is plain degrees of latitude and longitude, so on
   a Mercator map a cell is visually taller at high latitudes.
-- **Missed pins after a dropped connection:** pins created while your live connection was down
-  show up after the next pan or zoom, which refetches the view.
+- **Missed updates after a dropped connection:** nothing is replayed after the live connection
+  reconnects. Pins created meanwhile show up on the next pan or zoom; messages and titles in the open
+  room show up when you reopen it or reload.
+- **Desktop first:** at phone width the chat panel covers most of the map, and there is no button to
+  close it (use Back). Pins and cluster badges are not keyboard-operable.
 - **The creator can miss their room's live title.** If the place name arrives before the new
   panel's stream subscribes, the creator keeps "Chatroom 12" until they reopen the room. The pin
   still updates. The window is small.
@@ -156,19 +172,31 @@ one request per second, as Nominatim's usage policy requires.
   showing the room you just opened. The next navigation corrects it. This comes from how Turbo
   finishes a frame visit.
 - **Not deployed.** There is a plan and budget for fly.io in [infrastructure](docs/infrastructure.md),
-  but no CI and no live environment. Tests run locally.
+  but no hosted CI and no live environment. Tests run locally.
 
 The deferred review findings and what we'd do next are in the [triage notes](docs/review/notes.md).
 
 ## How this was built with AI
 
-Wolfchatter was built with Claude Code, and the process is committed alongside the code.
+Istvan Hoka is the lead engineer on Wolfchatter. He set the scope, made the product and
+architecture calls recorded in these docs, and approved the plans and every review decision.
+Claude Code drafted the docs and wrote most of the code, working from the rules and plans committed
+here.
 
 - **Docs before code.** A brainstorm produced the [design spec](docs/superpowers/specs/2026-11-09-wolfchatter-design.md),
-  which was distilled into the [PRD](docs/prd.md) and an [overview plan](docs/plans/00-overview.md)
-  with eight phases. Each phase got its own detailed plan in [`docs/plans/`](docs/plans/), written
-  just before it started. The lead developer approved the plans for phases 0–2 one by one. Phases 3–7
-  ran under a standing go-ahead, and the lead developer reviews the end result.
+  which was distilled into the [PRD](docs/prd.md) and an [overview plan](docs/plans/00-overview.md).
+  The PRD was committed before the Rails app was generated. Each of the nine phases (0–8) got its
+  own detailed plan in [`docs/plans/`](docs/plans/), written just before it started.
+- **Human checkpoints.** The lead engineer approved the plans for phases 0–2 one by one, then gave
+  a standing go-ahead for phases 3–7 and reviewed the result. Phase 8 was his call: the AI triage
+  recommended deferring review finding Q1 (every page rendered every pin), because the PRD had
+  accepted it. He overruled that, since the cost grows with every room, and approved the design and
+  plan for viewport loading with server-side clusters before it ran.
+- **Workflow skills.** Planning and execution used the open-source
+  [superpowers](https://github.com/obra/superpowers) skills for Claude Code: brainstorming
+  (`docs/superpowers/specs/`), writing plans (`docs/plans/`) and subagent-driven development. The
+  project-specific setup is committed: [`CLAUDE.md`](CLAUDE.md), the review agents and the
+  `/self-review` skill in [`.claude/`](.claude/), and [`bin/review`](bin/review).
 - **Subagent-driven execution.** Each task in a plan went to a fresh implementer subagent, with TDD
   and small commits. A fresh reviewer checked each task, and a whole-branch review ran before each
   phase PR. One branch and one PR per phase, merged without squashing.
@@ -178,8 +206,11 @@ Wolfchatter was built with Claude Code, and the process is committed alongside t
 - **Three-layer `/self-review`** ([skill](.claude/skills/self-review/SKILL.md), [agents](.claude/agents/)):
   `bin/review` runs the deterministic tools; three focused reviewers look only at queries, test
   gaps and security; then an adversarial verifier tries to refute each finding before it reaches
-  the [report](docs/review/report.md). The lead developer triages every finding in the
+  the [report](docs/review/report.md). The lead engineer triages every finding in the
   [notes](docs/review/notes.md).
+
+The review report covers the code as of phase 6. Phase 8 went through the same per-task and
+whole-branch reviews and `bin/review`, but not a second `/self-review` run.
 
 What the process caught: the phase 2 final review found a CSP nonce that would break after the
 first Turbo navigation. Running the geocoder for real, outside the test suite, found a missing
@@ -195,6 +226,8 @@ of the verifier's false positives (the 406 half of T9). No single layer catches 
 - PostgreSQL running locally and reachable by your user. `bin/setup` connects over the local socket
   as your OS user, which needs a PostgreSQL role with CREATEDB (`sudo -u postgres createuser --createdb $USER`),
   or set `DATABASE_URL` / `PGHOST` / `PGUSER`.
+- A C compiler and the PostgreSQL client headers (`libpq-dev` on Debian/Ubuntu, `postgresql-libs` on
+  Arch) to build the `pg` and `pg_query` gems.
 - Chrome or Chromium for system tests. Set `CHROME_BIN` to the browser binary if it is not
   found on your `PATH`.
 
@@ -250,15 +283,30 @@ bin/review --skip-system  # the same, without system tests
 ```
 
 It prints a summary table, writes raw output to `tmp/review/`, and exits non-zero if any tool
-fails. In Claude Code, `/self-review` runs it as the first layer of the AI review.
+fails. In Claude Code, `/self-review` runs it as the first layer of the AI review. `bin/ci` is the
+Rails default local pipeline; it skips system tests, so `bin/review` is the fuller check.
+
+### Try clustering
+
+Clusters appear when more than 300 rooms are in view. To add 1,000 rooms around Cluj-Napoca in
+development (inserted directly, so no place-name lookups run):
+
+```sh
+bin/rails runner 'now = Time.current; Chatroom.insert_all(Array.new(1000) { { latitude: 46.77 + rand(-0.2..0.2), longitude: 23.59 + rand(-0.2..0.2), place_name: "Demo room", created_at: now, updated_at: now } })'
+```
+
+Reload the map and zoom out to see the count badges. To remove them:
+`bin/rails runner 'Chatroom.where(place_name: "Demo room").delete_all'`.
 
 ## Docs
 
 - [Product requirements (PRD)](docs/prd.md): requirements, data model, real-time design, risks
 - [Design spec](docs/superpowers/specs/2026-11-09-wolfchatter-design.md): the brainstorm output the PRD came from
+- [Viewport pins design](docs/superpowers/specs/2026-11-09-viewport-pins-design.md): how pins load per viewport and cluster when dense (phase 8)
 - [Delivery plans](docs/plans/00-overview.md): the overview and [one plan per phase](docs/plans/)
 - [Infrastructure and cost estimate](docs/infrastructure.md): fly.io deployment plan and monthly costs
 - [Self-review report](docs/review/report.md): verified findings from the three-layer review
 - [Review triage notes](docs/review/notes.md): what was fixed, what wasn't, and why
 - [CLAUDE.md](CLAUDE.md): conventions and workflow for contributors and coding agents
 - [`.claude/`](.claude/): the review agents and the `/self-review` skill
+- [`bin/review`](bin/review): the deterministic review layer

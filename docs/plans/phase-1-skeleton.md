@@ -21,7 +21,7 @@ Minitest, Capybara + Selenium (headless Chromium), Prosopite + pg_query, SimpleC
 - Solid Queue is the Active Job adapter in development and production (so `limits_concurrency` applies everywhere jobs really run); test uses the `:test` adapter. Solid Cable is the Action Cable adapter in development and production: in development Solid Queue's Puma plugin forks separate processes, and `broadcast_*_later` jobs run there, so the in-process `async` cable adapter would never reach browsers. Test keeps the `test` cable adapter.
 - `.mise.local.toml` must stay git-ignored.
 - Branch: `phase-1-skeleton`. One PR into `main`, merge commit.
-- Docs are written for the product team; requirements come from "the product request"; the human is "the lead developer".
+- Docs are written for the product team. Requirements come from the product request. Istvan Hoka is the lead engineer and signs off every checkpoint.
 
 ## Review Focus
 
@@ -177,4 +177,4 @@ and "Not done" sections.
 
 - [ ] **Step 1:** `git push -u origin phase-1-skeleton`
 - [ ] **Step 2:** `gh pr create --base main --title "Phase 1: Rails skeleton and quality tooling"` with a body linking this plan and listing verification output.
-- [ ] **Step 3: CHECKPOINT** — lead developer reviews; then `gh pr merge --merge --delete-branch` and `git switch main && git pull`.
+- [ ] **Step 3: CHECKPOINT** — lead engineer reviews; then `gh pr merge --merge --delete-branch` and `git switch main && git pull`.
