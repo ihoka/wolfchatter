@@ -1,5 +1,7 @@
 # Wolfchatter — Technical PRD
 
+Owner: Istvan Hoka, lead engineer · Status: approved; updated for viewport pins (phase 8)
+
 Wolfchatter is a real-time chat app on a map. Clicking anywhere on the map drops a pin, and that pin is a chatroom anyone can join. New messages, pins and titles appear live for everyone watching.
 
 ## Functional requirements
@@ -12,6 +14,18 @@ Wolfchatter is a real-time chat app on a map. Clicking anywhere on the map drops
 6. **FR-6 Messages.** Each message shows author name, body and timestamp, ordered oldest to newest, with the panel scrolled to the newest. Bodies have whitespace and zero-width characters stripped, blank ones are rejected, and they are capped at 1000 characters; ties in timestamp order by id.
 7. **FR-7 Persistence.** Rooms and messages persist in PostgreSQL across sessions and restarts.
 8. **FR-8 Real time.** New messages appear live for everyone viewing that room, new pins appear live for everyone viewing the map where they fall in view (in a clustered view they raise the count of their cluster), and geocoded titles update live.
+
+## Open questions and how they were settled
+
+| Open question | Decision | Why |
+|---|---|---|
+| Real time is optional | In scope: messages, new pins and titles are live | It's the core of a shared map chat, and Turbo Streams make it cheap. |
+| "Stored between sessions": in the browser or on the server? | Server (PostgreSQL) | Rooms are shared, so everyone must see them. |
+| The mockup asks for a name with every message | Name once, kept in a signed cookie, changeable | Less friction, with the same honor-system identity. |
+| Does every map click create a room? | Yes, with no confirm step; double-click zoom is off | Matches the mockup. Stray rooms are an accepted risk. |
+| Rooms are titled "Chatroom 2" | `Chatroom <id>` at once, then the place name from a background job | Meaningful names without slowing the click. |
+| Accounts and moderation | Not built | Not requested. Rate limits slow abuse. |
+| What happens with many rooms? | Load only the visible area; cluster dense areas on the server | The page stays small at any room count (added in phase 8). |
 
 ## Out of scope
 
@@ -29,11 +43,11 @@ Wolfchatter is a real-time chat app on a map. Clicking anywhere on the map drops
 | Area | Decision | Why |
 |---|---|---|
 | Stack | Ruby 3.4.5, Rails 8.1.x, PostgreSQL | Rails 8 ships the Solid libraries used instead of Redis. |
-| Front-end | Hotwire (Turbo Frames/Streams), Stimulus only where JS is unavoidable (Leaflet map, scroll-to-bottom, name form); importmap, no Node build; Tailwind via `tailwindcss-rails` | Hotwire covers navigation and live updates without an SPA; no build step. |
+| Front-end | Hotwire (Turbo Frames/Streams), Stimulus only where JS is unavoidable (Leaflet map and its marker elements, scroll-to-bottom); importmap, no Node build; Tailwind via `tailwindcss-rails` | Hotwire covers navigation and live updates without an SPA; no build step. |
 | Map | Leaflet with standard OpenStreetMap tiles, loaded via importmap; OpenStreetMap attribution stays visible per the tile usage policy | No API key needed; matches the mockup's Leaflet look. |
 | Real-time delivery | Turbo Streams over Action Cable, backed by Solid Cable on Postgres | One database server (Postgres), no Redis to run. |
 | Background jobs | Solid Queue on Postgres | No Redis; geocoding must not block the request. |
-| Geocoding | Nominatim reverse API, called server-side from the job with an identifying User-Agent and timeouts | Free and keyless. The job uses Solid Queue `limits_concurrency to: 1, key: "nominatim"` and waits ~1s after each call, so at most 1 req/s globally; failures are logged; the fallback title stays. |
+| Geocoding | Nominatim reverse API, called from a background job with an identifying User-Agent and timeouts | Free and keyless. `limits_concurrency to: 1` plus a ~1 s wait keeps us at 1 req/s globally; on failure the fallback title stays. |
 | State management | Server is the source of truth; the client holds only Leaflet map state and the selected room (in the URL); display name in a cookie | Fewer sync bugs; deep links for free. |
 | Testing | Minitest (models, requests, jobs) plus system tests with headless Chromium; Nominatim stubbed; run locally only | Rails default; stubs keep tests offline and deterministic. |
 
@@ -59,33 +73,26 @@ Wolfchatter is a real-time chat app on a map. Clicking anywhere on the map drops
 | `body` | text | not null; whitespace and zero-width characters stripped, present, max 1000 |
 | `created_at`, `updated_at` | datetime | not null |
 
-Index: `messages(chatroom_id, created_at)` supports per-room listing ordered by `created_at`, then `id`, and covers the foreign key.
+Indexes: `messages(chatroom_id, created_at)` supports per-room listing ordered by `created_at`, then `id`, and covers the foreign key. `chatrooms(latitude, longitude)` serves the viewport query.
 
 Title rule: `place_name.presence || "Chatroom #{id}"`.
 
 ## Viewport pins
 
-The map page renders no pins. After load, and after every pan or zoom (`moveend`, debounced 250 ms, with any in-flight request aborted), the browser requests `GET /chatrooms/markers` with `south`, `west`, `north`, `east` and `zoom`. The reply is one Turbo Stream `update` of `#markers`; there is no JSON endpoint.
+The map page renders no pins. After load and after each pan or zoom (debounced 250 ms, stale requests aborted), the browser requests `GET /chatrooms/markers` with the bounding box and zoom, and the reply is one Turbo Stream `update` of `#markers`; there is still no JSON endpoint.
 
-- **Pins or clusters is decided by count, not zoom.** If the box holds 300 rooms or fewer (`MapMarkers::PIN_LIMIT`), the reply is pins, so a small map looks the same at every zoom. Otherwise it is clusters: counts per cell of a global grid, where the cell edge is `360 / 2**zoom * (80 / 256)` degrees (`MapMarkers::CELL_PX` is 80). The grid is doubled until the box holds at most 300 cells, so a zoomed-out reply is always bounded.
-- **Lone rooms:** a cell with one room is drawn as an ordinary pin, never as a "1" bubble.
-- **Cost:** at most 3 queries per request. The pins query is capped at 301 rows and uses the `(latitude, longitude)` index on `chatrooms`. In a clustered view, the cluster `GROUP BY` returns at most 300 cells but reads every room in view, so at world zoom its cost grows with the total number of rooms (7.6 ms for a world view at 10,000 rooms in the phase 8 benchmark); lone rooms are then loaded by primary key, at most 300. Only the output is bounded by `PIN_LIMIT`. The endpoint has no rate limit.
-- **Bad input:** missing, non-numeric or non-finite parameters, a longitude outside -180..180, or a zoom outside 0..19 return 400 (latitudes are clamped to -90..90); a request that doesn't accept a Turbo Stream returns 406. Responses are `no-cache`.
-- **Clicking a cluster** zooms in by 2 levels (capped at 19). It never creates a room.
-- **Deep links:** a full load of `/chatrooms/:id` centres the map on that room at zoom 5, and the panel carries its own marker, so the room is always pinned.
+- **Pins or clusters, by count:** 300 rooms or fewer in view (`MapMarkers::PIN_LIMIT`) gives ordinary pins at any zoom; more gives count clusters on a global grid. A cell with one room is drawn as a pin. Clicking a cluster zooms in by 2 levels and never creates a room.
+- **Bounded output:** at most 3 queries and at most 300 pins or clusters per reply. Bad parameters return 400; non-Turbo-Stream requests return 406.
+- **Deep links:** a full load of `/chatrooms/:id` centres the map on that room, and the panel carries its own pin.
+
+Details, including the grid formula and the live-update rules: [viewport pins design](superpowers/specs/2026-11-09-viewport-pins-design.md).
 
 ## Real-time design
 
 Two Turbo Stream families:
 
-- **`chatrooms`** (global): every client viewing the map subscribes. Creating a room broadcasts an append of a small, invisible marker element into `#live_markers` (which keeps only the last 20 elements), carrying data attributes for room id, lat, lng, title and URL; a Stimulus controller on it hands it to the map controller on connect. In a pin view the map adds the pin only if it is inside the current bounds; in a clustered view it increments the cluster for that grid cell, turns a lone pin in that cell into a cluster of 2, or adds a lone pin if the cell is empty. The map keys markers by room id and ignores known ids, so the creator (who gets both their own response and the broadcast) sees no duplicate. Title updates replace the room's marker elements.
+- **`chatrooms`** (global): every map viewer subscribes. Creating a room appends a hidden marker element (room id, lat, lng, title, URL as data attributes) to `#live_markers`, which keeps the last 20. The map adds the pin if it is in view, or in a clustered view raises the count of its cell. Markers are keyed by room id, so the creator sees no duplicate. Title updates replace the room's marker elements.
 - **Per room** (`[chatroom]`, via `turbo_stream_from @chatroom`): subscribed while a room is open. A new message broadcasts an append of the message partial to the list; the geocoding job broadcasts a replace of the room title.
-
-## Improvements over the mockups
-
-- **OSM tiles** instead of watercolor: no API key.
-- **Place-name titles** instead of "Chatroom 2" alone.
-- **Name once**, and a **URL per room**.
 
 ## Risks & assumptions
 
@@ -93,5 +100,6 @@ Two Turbo Stream families:
 - **Accidental room creation.** One click creates a room with no confirm step, as in the mockup; accepted.
 - **Nominatim 1 req/s policy.** Geocoding is serialized to 1 req/s; under heavy creation a backlog builds and titles arrive late.
 - **Rate limits:** 10 rooms and 30 messages per minute per IP (Rails `rate_limit`, Solid Cache). Per-IP, so a distributed flood is slowed, not stopped.
-- **Cluster query cost grows with the room count.** A zoomed-out markers request groups every room in view, so its cost grows with the total number of rooms, and the endpoint has no rate limit. Accepted: 7.6 ms for a world view at 10,000 rooms (phase 8 benchmark). Past roughly 100,000 rooms we would pre-aggregate the grid and cache it per zoom level.
-- **Cluster counts can drift.** Live updates adjust counts locally, so a count can be off by one between fetches (for example a room counted twice, or the creator's own cluster not incremented). The next pan or zoom reloads the exact counts.
+- **Cluster query cost grows with the room count.** A zoomed-out markers request groups every room in view, and the endpoint has no rate limit. Accepted: 7.6 ms for a world view at 10,000 rooms. Past roughly 100,000 rooms, pre-aggregate the grid per zoom level.
+- **Missed updates after a reconnect.** Nothing is replayed when the live connection returns: missed pins appear on the next pan, missed messages and titles on reload. Accepted for launch.
+- **Cluster counts can drift** by one between fetches; the next pan or zoom reloads exact counts.
