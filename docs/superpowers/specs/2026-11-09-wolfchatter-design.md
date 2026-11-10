@@ -1,18 +1,15 @@
 # Wolfchatter — Design
 
-Date: 2026-11-09 · Status: draft for approval · Target date: Tue 10 Nov 2026
+Date: 2026-11-09 · Status: approved (phases 0–7); extended by the [viewport pins design](2026-11-09-viewport-pins-design.md) (phase 8) · Target date: Tue 10 Nov 2026
 
 ## 1. Intent
 
 Wolfchatter is a real-time chat app on a map: click anywhere on the map to drop a pin, and that pin
 *is* a chatroom anyone can join.
 
-Beyond the product itself, the project values a transparent engineering process:
-
-- ambiguity in the requirements is resolved explicitly and documented,
-- what gets built and — just as visibly — what deliberately does not,
-- architecture decisions are recorded with their reasoning,
-- the AI-assisted workflow is captured in committed artifacts (rules, plans, review setup).
+We want the reasoning to outlive the code. Open questions are settled in writing, non-goals are
+listed as clearly as goals, each architecture decision carries its reason, and the rules, plans and
+review setup the AI works from are committed with the code.
 
 Every non-obvious decision is **written down with its reason** — in the PRD, in the plans, or in
 commit messages. A clean, deliberate git history is part of the deliverable.
@@ -82,7 +79,7 @@ read receipts/typing indicators, CI pipeline (tests run locally), actual deploym
 
 - **Stack:** Ruby 3.4.5, Rails 8.1.x (installed locally), PostgreSQL (running locally).
 - **Front-end:** Hotwire — Turbo Frames/Streams for panel navigation and updates, Stimulus only where
-  JS is unavoidable (the Leaflet map controller, scroll-to-bottom, name form). Importmap, no Node build.
+  JS is unavoidable (the Leaflet map and its marker elements, scroll-to-bottom). Importmap, no Node build.
   Tailwind via `tailwindcss-rails`.
 - **Map:** Leaflet with standard OpenStreetMap tiles (no API key). Leaflet loaded via importmap.
 - **Real time:** Turbo Streams over Action Cable, backed by **Solid Cable** on Postgres (no Redis), in
@@ -124,6 +121,8 @@ read receipts/typing indicators, CI pipeline (tests run locally), actual deploym
 5. **Infra doc:** fly.io staging + production cost table with stated assumptions.
 6. **Self-review:** build the review setup, run it, fix, write report + note.
 7. **README polish:** final `README.md` as the project's front page.
+8. **Viewport pins:** pins per viewport, server-side clusters when dense
+   ([design](2026-11-09-viewport-pins-design.md)); added after the self-review (finding Q1).
 
 ### Execution rules (decided)
 
@@ -132,11 +131,11 @@ read receipts/typing indicators, CI pipeline (tests run locally), actual deploym
   geocoding entirely become "documented, not done" in the README/PRD). **Never cut the self-review
   (phase 6) or the README polish (phase 7)** — a full review of a smaller app beats a polished app
   with no review, and the README is the project's front page.
-- **Human checkpoints — execution stops and waits for the lead developer at:**
+- **Human checkpoints — execution stops and waits for the lead engineer at:**
   - approval of each phase's detailed plan before it executes;
-  - the PRD: AI drafts, the developer edits and signs off;
-  - review triage: the developer personally decides fix / don't-fix for each finding; `notes.md`
-    records *their* reasoning (AI may transcribe, not decide).
+  - the PRD: Claude drafts, the lead engineer reviews and signs off;
+  - review triage: the lead engineer decides fix / don't-fix for each finding; `notes.md`
+    records his reasoning (Claude may transcribe, not decide).
 - **Git history:** one branch + pull request per phase, merged into `main`. Each PR description links
   its phase plan. First commit on `main`: `.gitignore` (incl. `.mise.local.toml`, machine-local) and
   this design doc. Use the `gh` CLI for GitHub operations.

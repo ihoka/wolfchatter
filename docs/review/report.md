@@ -111,7 +111,7 @@ None.
 
 ## Triage
 
-Decisions are recorded in [`notes.md`](notes.md) by the lead developer.
+Decisions are recorded in [`notes.md`](notes.md) by the lead engineer.
 
 ## How to re-run
 

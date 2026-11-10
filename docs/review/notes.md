@@ -1,8 +1,10 @@
 # Self-review triage notes
 
-> **Confirmed by the lead developer on 2026-11-09.** The AI controller drafted the recommendations below, and the lead developer confirmed every fix and no-fix decision as written. The remaining "Not fixed" items are final: they will not be fixed, and "What I'd do with more time" lists ideas, not scheduled work.
+> **Decisions by the lead engineer, Istvan Hoka, 2026-11-09.** Claude drafted a recommendation for each finding while running `/self-review`. Istvan accepted ten as drafted and changed two: the draft deferred **Q1** (every page renders every pin), and he decided to fix it, which became phase 8; and he closed **T5** as won't-fix instead of deferring it. The "Not fixed" items are final, and "What I'd do with more time" lists ideas, not scheduled work.
 
 Source: [`report.md`](report.md) (commit `87ce01d`, 12 confirmed findings). Re-run after fixes: `bin/review` green (85 runs, 0 failures, 100% line coverage, 0 Brakeman warnings, 0 RuboCop offenses). After phase 8 (Q1): 113 runs, 0 failures, 100% line coverage, 0 Brakeman warnings, 0 RuboCop offenses.
+
+**Scope.** The AI reviewers in `report.md` ran at the end of phase 6. Phase 8 (Q1) came later. It went through the same per-task reviews and a whole-branch review as every phase, plus `bin/review`, but not through a second `/self-review` run.
 
 ## Fixed
 
@@ -17,20 +19,35 @@ Source: [`report.md`](report.md) (commit `87ce01d`, 12 confirmed findings). Re-r
 | **T7** low — FR-6 panel rendering is untested | Fix (tests) | The tests cover the timestamp format and the 100-message window. Scroll-to-newest is client-side behaviour, and the system tests exercise it only indirectly. | `0c7110d` |
 | **T8** low — cookie flags aren't asserted | Fix (tests) | A test now checks that the cookie is `HttpOnly` and `SameSite=Lax`, so nobody can drop those flags silently. | `0c7110d` |
 | **T9** low — 406/400 responses are untested | Partly fixed | A 400 for a missing `chatroom` key and a 422 for a non-numeric latitude are now tested. The 406 claim was a false positive that the verifier confirmed: Rails already returns 406 via `rescue_responses`. | `0c7110d`, `8d8fe1f` |
-| **Q1** low — every page renders every pin | Fix | The PRD had accepted this, but it grows with every room, so we changed the design instead of waiting for it to hurt. The map page now renders no pins. The browser asks for the visible area, and the server returns pins when 300 or fewer rooms are in view and count clusters on a grid otherwise. We chose server-side clustering because a client plugin would still ship every pin. Measured with 10,000 rooms in the development database (median of 5 runs after a warm-up, through `ActionDispatch::Integration::Session`, so no network): `GET /` is 5,492 bytes in 1.5 ms (was 3.7 MB and about 220 ms); a world-view markers request (zoom 3) is 1,867 bytes in 7.6 ms; a Europe-wide request at zoom 5 is 26,125 bytes in about 11.5 ms (median; the first runs were slower, up to 24 ms, and the five runs were 24.0, 18.3, 11.5, 11.0 and 10.8 ms); a city-box request at zoom 12 is 653 bytes in 1.7 ms, but that box held almost no rooms, so it is not a worst case. The Q1 figures came from a separate measurement, so treat the comparison as an order of magnitude, not a precise ratio. Design: [viewport pins](../superpowers/specs/2026-11-09-viewport-pins-design.md). | `91f7fb0`, `aab9e91`, `d4bb4b8`, `59037e6`, `7ae7a82` |
+| **Q1** low — every page renders every pin | Fix (draft said Defer) | The PRD had accepted it, but the cost grows with every room, so the lead engineer chose to fix it rather than wait for it to hurt. The map now loads only the visible area: pins when 300 or fewer rooms are in view, count clusters on a grid otherwise. Clustering is server-side because a client plugin would still ship every pin. Figures below; design: [viewport pins](../superpowers/specs/2026-11-09-viewport-pins-design.md). | `91f7fb0`, `aab9e91`, `d4bb4b8`, `59037e6`, `7ae7a82` |
+
+**Q1 benchmark.** 10,000 rooms in the development database; median of 5 runs after a warm-up, through `ActionDispatch::Integration::Session`, so no network.
+
+| Request | Size | Time |
+|---|---|---|
+| `GET /` before phase 8 (from the Q1 finding) | 3.7 MB | about 220 ms |
+| `GET /` after | 5,492 bytes | 1.5 ms |
+| Markers, world view (zoom 3) | 1,867 bytes | 7.6 ms |
+| Markers, Europe (zoom 5) | 26,125 bytes | about 11.5 ms (runs: 24.0, 18.3, 11.5, 11.0, 10.8) |
+| Markers, city box (zoom 12) | 653 bytes | 1.7 ms (the box held almost no rooms, so not a worst case) |
+
+The "before" figure came from a separate measurement, so treat the comparison as an order of magnitude.
 
 ## Not fixed
 
 | Finding | Decision | Why |
 |---|---|---|
 | **T2** low — if enqueuing the place-name job fails when a room is created, the request returns 500 and the pin isn't broadcast | Don't fix | Solid Queue's database is on the same Postgres server as the app's data. If enqueuing fails, the insert that just succeeded would usually fail too, and a 500 is an honest response to that. Rescuing the error would hide an infrastructure failure. |
-| **T5** low — the room's creator can miss the live title update, because their room stream subscribes after the panel loads | Defer | The job is picked up 0–1 s after enqueue (1 s polling) plus a Nominatim round-trip, so the creator's stream usually subscribes first. The pin title still updates through the global stream. Refreshing the panel title when the stream connects would close it. That's worth doing, but it isn't needed for launch. |
+| **T5** low — the room's creator can miss the live title update, because their room stream subscribes after the panel loads | Don't fix | The job is picked up 0–1 s after enqueue (1 s polling) plus a Nominatim round-trip, so the creator's stream usually subscribes first. The pin title still updates through the global stream. Refreshing the panel title when the stream connects would close it. That's worth doing later, but it isn't needed for launch. |
 
 ## What I'd do with more time
 
 - Refresh the panel title when its stream connects (T5).
 - Keep a moderation path: let an admin hide a room or message. Rate limiting slows abuse but can't undo it.
 - Add a real Solid Queue integration test for the Nominatim throttle, so we aren't relying on reading the gem's source.
+- Refetch the open room and the visible markers after the WebSocket reconnects. Anything broadcast while the socket was down (a deploy, a laptop waking) is otherwise missed until the next page load or pan.
+- A phone layout: at phone width the panel covers most of the map. A bottom sheet with a close control would fix it.
+- Keyboard access to the map: open a pin or zoom a cluster with Enter, and reach the panel without tabbing through every marker.
 - On first deploy, check that `request.remote_ip` is the real client IP behind the Fly proxy. The per-IP rate limits depend on it.
 
 ## Review of the review

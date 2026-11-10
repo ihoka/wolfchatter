@@ -19,7 +19,7 @@ visible. So the server also groups rooms into clusters when there are too many t
   in, and clusters split into smaller ones and finally into ordinary pins.
 - Zoomed in, the user sees ordinary pins for the visible area only. Every pan or zoom loads the new
   area.
-- Live updates still work (lead developer's decision):
+- Live updates still work (lead engineer's decision):
   - **Clustered view:** creating a room raises the count of the cluster it falls in for everyone
     watching. If no cluster covers that spot, a cluster of 1 (shown as a pin) appears.
   - **Pin view:** a new room's pin appears only if it is inside the viewer's current view. Off-screen
@@ -43,7 +43,7 @@ The change fails, even if it works, if:
 - panning makes pins flicker or vanish while the next area loads;
 - it reintroduces an N+1, or a page or reply whose size scales with total rooms.
   (Amended after phase 8: the zoomed-out cluster query's *cost* does scale with the rooms in
-  view. The lead developer accepted this as a risk; see the PRD risks.)
+  view. The lead engineer accepted this as a risk; see the PRD risks.)
 
 ## Constraints
 
@@ -53,13 +53,11 @@ The change fails, even if it works, if:
 - Plain PostgreSQL. Coordinates are `decimal(10,6)` columns.
 - Prosopite stays on. Every new query's output is bounded by `PIN_LIMIT`. The pins query is also
   indexed; the cluster query scans the rooms in view (accepted risk, amended after phase 8).
-- The PRD, spec and CLAUDE.md must be updated to match. The PRD currently says FR-1 "map loads
-  showing all existing pins", lists "pin clustering" as a non-goal, and lists unbounded loading as an
-  accepted risk.
+- The PRD, spec and CLAUDE.md must be updated to match (done in phase 8; see "Docs to update").
 
 ## Design
 
-### Decided with the lead developer
+### Decided with the lead engineer
 
 1. **Grouping happens on the server.** The browser never downloads every room. (Considered and
    rejected: the Leaflet.markercluster plugin. It looks the same, but it still ships every pin, so
@@ -85,7 +83,7 @@ The change fails, even if it works, if:
 
 ### Pins or clusters
 
-- **Adaptive, not a fixed zoom threshold** (my call). The server counts rooms in the bounding box.
+- **Adaptive, not a fixed zoom threshold** (proposed in the design, approved by the lead engineer). The server counts rooms in the bounding box.
   If there are `PIN_LIMIT` or fewer (starting value 300), it returns pins. Otherwise it returns
   clusters. This keeps small maps exactly as they are today at every zoom, which covers the first
   anti-goal, and switches to clusters only where density demands it.
@@ -130,7 +128,7 @@ The change fails, even if it works, if:
 ### Deep links
 
 On a full page load of `/chatrooms/:id`, the map centres on that room at the current default zoom.
-Today it always opens at [48, 15]. (My call. It is required by the second anti-goal.) The index page
+Today it always opens at [48, 15]. (Proposed in the design and approved by the lead engineer; the second anti-goal requires it.) The index page
 keeps today's default view.
 
 ### Clicking a cluster
@@ -180,7 +178,7 @@ down.
 - **`docs/review/notes.md`:** Q1 moves to Fixed, with the benchmark figures.
 - **README:** the architecture diagram and the decisions table (the "pins as marker elements" row).
 
-## Settled after the builder check (my calls)
+## Settled after the builder check (approved with the design)
 
 1. **Panel pin.** The panel's room has its own Leaflet layer, outside the swapped layer, so the
    swap never removes it. In pin mode, a fetched pin with the same id is skipped. In cluster mode the

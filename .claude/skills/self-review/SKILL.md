@@ -37,10 +37,10 @@ You do not review the code yourself, and you do not decide what gets fixed.
    UNCERTAIN findings get one short entry each. REFUTED findings are counted, not listed, except refuted
    seeded concerns, which go under "Checked and clean". Every seeded concern must appear in the report
    exactly once.
-7. **Hand off for triage.** The lead developer decides fix, don't fix or defer for each finding. You may
+7. **Hand off for triage.** The lead engineer decides fix, don't fix or defer for each finding. You may
    draft `docs/review/notes.md`, starting with:
-   `> **Draft — pending lead developer confirmation.** Recommendations below were drafted by the AI controller; each fix/no-fix decision is confirmed or changed by the lead developer before merge.`
-   Stop there, and tell the developer the report and the draft are ready.
+   `> **Draft — pending lead engineer confirmation.** Claude drafted these recommendations from the report; the lead engineer confirms or changes each fix/no-fix decision before merge.`
+   Stop there, and tell the lead engineer the report and the draft are ready.
 
 ## Report template
 
@@ -87,7 +87,7 @@ Ordered critical → low.
 
 ## Triage
 
-Decisions are recorded in [`notes.md`](notes.md) by the lead developer.
+Decisions are recorded in [`notes.md`](notes.md) by the lead engineer.
 
 ## How to re-run
 
